@@ -110,7 +110,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           />
         ) : (
           <div className="w-full h-full bg-[#16161a] flex items-center justify-center font-cyber-orbitron text-zinc-600 text-xs uppercase tracking-wider">
-            Vip Vaper Image
+            VipViper Image
           </div>
         )}
       </div>

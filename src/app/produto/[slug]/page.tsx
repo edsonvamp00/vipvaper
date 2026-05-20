@@ -6,7 +6,7 @@ import { MOCK_PRODUCTS } from '@/lib/mockData';
 import { useCart } from '@/context/CartContext';
 import { Product } from '@/types';
 import Link from 'next/link';
-import { ArrowLeft, Heart, ShoppingBag, ShieldCheck, Zap, Plus, Minus, ArrowRight, Star, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Heart, ShoppingBag, ShieldCheck, Zap, Plus, Minus, ArrowRight, Star, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface ProdutoPageProps {
@@ -23,6 +23,13 @@ export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
   const [added, setAdded] = useState(false);
   const [product, setProduct] = useState<Product | undefined>(undefined);
   const [loadingProduct, setLoadingProduct] = useState(true);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  // Reset image index when product changes
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product]);
+
 
   // Fetch product from Supabase by slug
   useEffect(() => {
@@ -182,7 +189,21 @@ export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
 
   const hasDiscount = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0;
   const displayPrice = hasDiscount ? product.promo_price! : product.price;
-  const mainImage = product.product_images?.find((img) => img.is_main)?.image_url ?? '/placeholder.png';
+  
+  // Gallery calculation
+  const images = product.product_images && product.product_images.length > 0
+    ? [...product.product_images].sort((a, b) => (b.is_main ? 1 : 0) - (a.is_main ? 1 : 0))
+    : [{ image_url: '/placeholder.png', is_main: true }];
+
+  const currentImageUrl = images[activeImageIndex]?.image_url || '/placeholder.png';
+
+  const nextImage = () => {
+    setActiveImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   return (
     <MobileShell showHeader={false}>
@@ -203,23 +224,86 @@ export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
       </div>
 
       {/* 2. Sleek Product Image Gallery */}
-      <div className="w-full aspect-square rounded-2xl border border-zinc-900 bg-[#07070a] relative overflow-hidden flex items-center justify-center mb-6">
+      <div className="w-full aspect-square rounded-2xl border border-zinc-900 bg-[#07070a] relative overflow-hidden flex items-center justify-center mb-3">
         <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-[#00ff66]" />
         <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-[#00ff66]" />
         
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={mainImage}
+          src={currentImageUrl}
           alt={product.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-all duration-300"
         />
+
+        {/* Gallery Navigation Chevrons */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={prevImage}
+              className="absolute left-3 p-1.5 rounded-lg bg-black/60 border border-zinc-800/80 text-white hover:text-[#00ff66] transition-colors duration-200 z-10"
+              aria-label="Imagem anterior"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-3 p-1.5 rounded-lg bg-black/60 border border-zinc-800/80 text-white hover:text-[#00ff66] transition-colors duration-200 z-10"
+              aria-label="Próxima imagem"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
         
         {hasDiscount && (
           <span className="absolute bottom-4 left-4 bg-red-500 text-white font-cyber-orbitron text-[9px] font-black tracking-widest px-2 py-0.5 rounded shadow-[0_0_10px_rgba(239,68,68,0.5)]">
             [ PROMOÇÃO ]
           </span>
         )}
+
+        {/* Dot Indicators */}
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+            {images.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveImageIndex(idx)}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                  idx === activeImageIndex 
+                    ? 'bg-[#00ff66] w-3.5 shadow-[0_0_8px_#00ff66]' 
+                    : 'bg-zinc-600'
+                }`}
+                aria-label={`Ir para imagem ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Thumbnail Selector Row */}
+      {images.length > 1 && (
+        <div className="flex gap-2.5 overflow-x-auto pb-2 mb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveImageIndex(idx)}
+              className={`w-14 h-14 rounded-xl overflow-hidden border shrink-0 bg-[#07070a] transition-all duration-300 ${
+                idx === activeImageIndex 
+                  ? 'border-[#00ff66] shadow-[0_0_10px_rgba(0,255,102,0.25)] scale-95' 
+                  : 'border-zinc-800 hover:border-zinc-700'
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.image_url}
+                alt={`${product.name} miniatura ${idx + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
 
       {/* 3. Product Info Block */}
       <div className="flex flex-col mb-6">
@@ -299,7 +383,7 @@ export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
           <ShieldCheck className="w-6 h-6 text-[#00f0ff] shrink-0 mt-0.5" />
           <div>
             <h4 className="font-cyber-orbitron text-[9px] font-black text-[#00f0ff] uppercase tracking-wider mb-1">
-              AUTENTICIDADE GARANTIDA VIP VAPER
+              AUTENTICIDADE GARANTIDA VIPVIPER
             </h4>
             <p className="font-cyber-inter text-[10px] text-zinc-500 leading-relaxed">
               Todos os nossos insumos acompanham código de barras autenticável. Não compre falsificações que arriscam sua saúde.

@@ -23,21 +23,21 @@ export default function AdminDashboardPage() {
   const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Simulated metrics
-  const stats = {
+  // Stats state initialized with fallback demo data
+  const [stats, setStats] = useState({
     revenue: 3459.60,
     ordersCount: 18,
     avgTicket: 192.20,
     productsCount: 4
-  };
+  });
 
-  // Mock list of recent orders for administration
-  const mockOrders: MockAdminOrder[] = [
-    { id: 'PED-7F9A', customer: 'Carlos Henrique', itemsCount: 2, total: 189.80, status: 'pending', time: 'Há 10 min' },
-    { id: 'PED-4B2C', customer: 'Mariana Costa', itemsCount: 1, total: 119.90, status: 'preparing', time: 'Há 45 min' },
-    { id: 'PED-9E3F', customer: 'Rodrigo Abreu', itemsCount: 3, total: 429.70, status: 'shipped', time: 'Há 2 horas' },
-    { id: 'PED-1D5E', customer: 'Juliana Paes', itemsCount: 1, total: 69.90, status: 'completed', time: 'Ontem' },
-  ];
+  // Recent orders list state
+  const [orders, setOrders] = useState<any[]>([
+    { id: 'PED-7F9A', contact_name: 'Carlos Henrique', total: 189.80, status: 'pending', created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), payment_method: 'pix' },
+    { id: 'PED-4B2C', contact_name: 'Mariana Costa', total: 119.90, status: 'preparing', created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), payment_method: 'card_on_delivery' },
+    { id: 'PED-9E3F', contact_name: 'Rodrigo Abreu', total: 429.70, status: 'shipped', created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), payment_method: 'pix' },
+    { id: 'PED-1D5E', contact_name: 'Juliana Paes', total: 69.90, status: 'completed', created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), payment_method: 'cash' },
+  ]);
 
   useEffect(() => {
     // Check if logged in via demo bypass or standard admin role
@@ -46,11 +46,8 @@ export default function AdminDashboardPage() {
       setIsDemo(true);
       setLoading(false);
     } else {
-      // If not demo and auth loading is done, check admin permissions
-      // We will add a small timeout or wait for auth state
       const checkAccess = () => {
         if (!isAdmin) {
-          // If not admin, wait a brief second to let profile load, else redirect
           const timeout = setTimeout(() => {
             const currentDemo = localStorage.getItem('vip_vaper_demo_admin') === 'true';
             if (!isAdmin && !currentDemo) {
@@ -68,13 +65,70 @@ export default function AdminDashboardPage() {
     }
   }, [isAdmin, router]);
 
+  // Load real Supabase data if not in demo mode
+  useEffect(() => {
+    if (loading) return;
+    if (isDemo) return;
+
+    async function loadDashboardData() {
+      try {
+        // 1. Get products count
+        const { count: prodsCount } = await supabase
+          .from('products')
+          .select('id', { count: 'exact', head: true })
+          .eq('active', true);
+        
+        // 2. Get all orders to calculate metrics
+        const { data: allOrders } = await supabase
+          .from('orders')
+          .select('total, status');
+        
+        // 3. Get recent 5 orders list
+        const { data: recentOrders } = await supabase
+          .from('orders')
+          .select('id, contact_name, total, status, created_at, payment_method')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        let totalRevenue = 0;
+        let validOrdersCount = 0;
+
+        if (allOrders) {
+          allOrders.forEach(o => {
+            if (o.status !== 'cancelled') {
+              totalRevenue += Number(o.total);
+              validOrdersCount++;
+            }
+          });
+        }
+
+        const avg = validOrdersCount > 0 ? totalRevenue / validOrdersCount : 0;
+
+        setStats({
+          revenue: totalRevenue,
+          ordersCount: allOrders ? allOrders.length : 0,
+          avgTicket: avg,
+          productsCount: prodsCount || 0
+        });
+
+        if (recentOrders && recentOrders.length > 0) {
+          setOrders(recentOrders);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar dados do dashboard do Supabase:', err);
+      }
+    }
+
+    loadDashboardData();
+  }, [loading, isDemo]);
+
   const handleLogout = () => {
     localStorage.removeItem('vip_vaper_demo_admin');
     signOut();
     router.push('/admin/login');
   };
 
-  const getStatusStyle = (status: MockAdminOrder['status']) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'pending':
         return 'bg-amber-500/10 border-amber-500/30 text-amber-400';
@@ -89,7 +143,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const getStatusLabel = (status: MockAdminOrder['status']) => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pending':
         return 'Pendente';
@@ -104,10 +158,37 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMin = Math.floor(diffMs / (1000 * 60));
+      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+
+      if (diffMin < 1) return 'Agora mesmo';
+      if (diffMin < 60) return `Há ${diffMin} min`;
+      if (diffHrs < 24) return `Há ${diffHrs} ${diffHrs === 1 ? 'hora' : 'horas'}`;
+      
+      return date.toLocaleDateString('pt-BR');
+    } catch {
+      return 'Algum tempo';
+    }
+  };
+
+  const getPaymentLabel = (method: string) => {
+    switch (method) {
+      case 'pix': return 'Pix';
+      case 'card_on_delivery': return 'Cartão na Entrega';
+      default: return 'Dinheiro';
+    }
+  };
+
   if (loading) {
     return (
       <MobileShell showHeader={false} showBottomNav={false}>
         <div className="flex flex-col items-center justify-center py-40">
+
           <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
           <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
             SISTEMA INICIALIZANDO...
@@ -237,7 +318,7 @@ export default function AdminDashboardPage() {
       </h3>
       
       <div className="flex flex-col gap-3">
-        {mockOrders.map((ord) => (
+        {orders.map((ord) => (
           <div
             key={ord.id}
             className="p-3.5 bg-[#09090c] border border-zinc-900 hover:border-zinc-800 rounded-xl flex items-center justify-between gap-3 relative overflow-hidden"
@@ -245,17 +326,19 @@ export default function AdminDashboardPage() {
             {/* Left Info */}
             <div className="flex flex-col">
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-cyber-orbitron text-[10px] font-black text-white">{ord.id}</span>
-                <span className="font-cyber-inter text-[9px] text-zinc-500">{ord.time}</span>
+                <span className="font-cyber-orbitron text-[10px] font-black text-white">
+                  PED-{ord.id.slice(0, 8).toUpperCase()}
+                </span>
+                <span className="font-cyber-inter text-[9px] text-zinc-500">{formatTimeAgo(ord.created_at)}</span>
               </div>
-              <span className="font-cyber-inter text-xs font-bold text-zinc-300 mb-0.5">{ord.customer}</span>
-              <span className="font-cyber-inter text-[10px] text-zinc-500">{ord.itemsCount}x itens adicionados</span>
+              <span className="font-cyber-inter text-xs font-bold text-zinc-300 mb-0.5">{ord.contact_name}</span>
+              <span className="font-cyber-inter text-[10px] text-zinc-500">Pagam: {getPaymentLabel(ord.payment_method)}</span>
             </div>
 
             {/* Right Status / Value */}
             <div className="flex flex-col items-end gap-1.5">
               <span className="font-cyber-orbitron text-xs font-black text-[#00ff66] tracking-tight">
-                R$ {ord.total.toFixed(2)}
+                R$ {Number(ord.total).toFixed(2)}
               </span>
               <span className={`px-2 py-0.5 rounded text-[8px] font-cyber-orbitron font-black uppercase border ${getStatusStyle(ord.status)}`}>
                 {getStatusLabel(ord.status)}

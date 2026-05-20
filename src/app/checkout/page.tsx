@@ -144,7 +144,7 @@ export default function CheckoutPage() {
           : '💵 Dinheiro';
 
       const whatsappText = encodeURIComponent(
-        `🔋 *NOVO PEDIDO VIP VAPER* 🔋\n` +
+        `🔋 *NOVO PEDIDO VIPVIPER* 🔋\n` +
         `-------------------------------\n` +
         `*Pedido ID:* #${orderId}\n` +
         `*Cliente:* ${name}\n` +
@@ -157,7 +157,7 @@ export default function CheckoutPage() {
         `*Subtotal:* R$ ${cartSubtotal.toFixed(2)}\n` +
         `*Taxa de Entrega:* R$ ${deliveryFee.toFixed(2)}\n` +
         `*TOTAL DO PEDIDO:* R$ ${orderTotal.toFixed(2)}\n\n` +
-        `🤖 _Pedido enviado do Vip Vaper Mobile_`
+        `🤖 _Pedido enviado do VipViper Mobile_`
       );
 
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappPhone}&text=${whatsappText}`;

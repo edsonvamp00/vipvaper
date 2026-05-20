@@ -256,12 +256,12 @@ export default function AdminOrdersPage() {
     } else if (order.status === 'shipped') {
       detailMsg = 'Boa notícia! Seu pedido já saiu para entrega/está disponível para retirada. Aguarde nosso portador!';
     } else if (order.status === 'completed') {
-      detailMsg = 'Pedido finalizado e entregue com sucesso. Muito obrigado por escolher a VIP VAPER! Esperamos você na próxima compra.';
+      detailMsg = 'Pedido finalizado e entregue com sucesso. Muito obrigado por escolher a VIPVIPER! Esperamos você na próxima compra.';
     } else {
       detailMsg = 'Estamos revisando seu pedido. Fique atento às nossas notificações!';
     }
 
-    const text = `Olá, *${order.contact_name}*!\n\nAtualização sobre o seu pedido *${order.id}* na *VIP VAPER* 🧪🔋\n\nStatus Atual: *${statusText}*\n\n👉 _${detailMsg}_\n\n*Resumo Financeiro:*\nTotal: R$ ${order.total.toFixed(2)} (${order.payment_method})`;
+    const text = `Olá, *${order.contact_name}*!\n\nAtualização sobre o seu pedido *${order.id}* na *VIPVIPER* 🧪🔋\n\nStatus Atual: *${statusText}*\n\n👉 _${detailMsg}_\n\n*Resumo Financeiro:*\nTotal: R$ ${order.total.toFixed(2)} (${order.payment_method})`;
     
     const url = `https://api.whatsapp.com/send?phone=${order.contact_phone}&text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');

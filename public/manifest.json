@@ -1,0 +1,18 @@
+{
+  "name": "VipViper Premium Marketplace",
+  "short_name": "VipViper",
+  "description": "O marketplace premium mais rápido e moderno de vapes e essências. Experiência cibernética mobile-first.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020203",
+  "theme_color": "#020203",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

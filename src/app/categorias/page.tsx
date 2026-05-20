@@ -1,12 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MobileShell } from '@/components/common/MobileShell';
-import { MOCK_CATEGORIES } from '@/lib/mockData';
+import { Category } from '@/types';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { Layers, Droplet, Cpu, Zap, ArrowLeft, ChevronRight } from 'lucide-react';
 
 export default function CategoriasPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('active', true);
+        
+        if (data) {
+          setCategories(data as Category[]);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar categorias:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCategories();
+  }, []);
+
   const getCategoryIcon = (slug: string) => {
     switch (slug) {
       case 'pods':
@@ -33,6 +59,19 @@ export default function CategoriasPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <MobileShell showHeader={false}>
+        <div className="flex flex-col items-center justify-center py-40 text-center">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-[#00ff66] animate-spin mb-4" />
+          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+            CARREGANDO DEPARTAMENTOS...
+          </span>
+        </div>
+      </MobileShell>
+    );
+  }
+
   return (
     <MobileShell showHeader={false}>
       {/* Top bar with back navigation */}
@@ -55,7 +94,7 @@ export default function CategoriasPage() {
 
       {/* Grid of tech-styled category blocks */}
       <div className="flex flex-col gap-4">
-        {MOCK_CATEGORIES.map((cat, idx) => (
+        {categories.map((cat) => (
           <Link
             key={cat.id}
             href={`/categoria/${cat.slug}`}

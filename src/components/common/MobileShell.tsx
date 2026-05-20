@@ -3,6 +3,7 @@
 import React from 'react';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
+import { WhatsAppButton } from '../ui/WhatsAppButton';
 
 interface MobileShellProps {
   children: React.ReactNode;
@@ -31,9 +32,13 @@ export const MobileShell: React.FC<MobileShellProps> = ({
           {children}
         </main>
         
+        {/* Floating WhatsApp button */}
+        <WhatsAppButton />
+
         {/* Floating Bottom Nav */}
         {showBottomNav && <BottomNav />}
       </div>
     </div>
   );
 };
+

@@ -3,28 +3,42 @@
 import React, { useState, useEffect } from 'react';
 import { MobileShell } from '@/components/common/MobileShell';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { MOCK_PRODUCTS } from '@/lib/mockData';
 import { Product } from '@/types';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { ArrowLeft, Heart, Sparkles } from 'lucide-react';
+import { ArrowLeft, Heart } from 'lucide-react';
 
 export default function FavoritosPage() {
   const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load and filter favorites from LocalStorage
-  const loadFavorites = () => {
+  // Load and filter favorites from Supabase by checking LocalStorage IDs
+  const loadFavorites = async () => {
     try {
       const storedFavorites = localStorage.getItem('vip_vaper_favorites');
       if (storedFavorites) {
         const favoritesArray: string[] = JSON.parse(storedFavorites);
-        const filtered = MOCK_PRODUCTS.filter((prod) => favoritesArray.includes(prod.id));
-        setFavoriteProducts(filtered);
+        if (favoritesArray.length > 0) {
+          const { data, error } = await supabase
+            .from('products')
+            .select('*, category:categories(*), product_images(*)')
+            .in('id', favoritesArray)
+            .eq('active', true);
+          
+          if (error) throw error;
+          if (data) {
+            setFavoriteProducts(data as Product[]);
+          } else {
+            setFavoriteProducts([]);
+          }
+        } else {
+          setFavoriteProducts([]);
+        }
       } else {
         setFavoriteProducts([]);
       }
     } catch (e) {
-      console.error('Erro ao ler favoritos do localStorage:', e);
+      console.error('Erro ao ler favoritos do Supabase:', e);
     } finally {
       setIsLoaded(true);
     }
@@ -65,7 +79,7 @@ export default function FavoritosPage() {
       </div>
 
       {!isLoaded ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-40">
           <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-[#00ff66] animate-spin" />
         </div>
       ) : favoriteProducts.length === 0 ? (

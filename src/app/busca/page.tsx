@@ -4,7 +4,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MobileShell } from '@/components/common/MobileShell';
 import { ProductCard } from '@/components/ui/ProductCard';
-import { MOCK_PRODUCTS, MOCK_CATEGORIES } from '@/lib/mockData';
+import { Product, Category } from '@/types';
+import { supabase } from '@/lib/supabase';
 import { Search, ArrowLeft, SlidersHorizontal, ArrowUpDown, CornerDownRight, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -18,12 +19,50 @@ function SearchContent() {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'name_asc'>('default');
   const [showFilters, setShowFilters] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Sync state with URL search params
   useEffect(() => {
     setQuery(searchParams.get('q') || '');
     setSelectedCategory(searchParams.get('categoria') || '');
   }, [searchParams]);
+
+  // Fetch Categories and Products from Supabase
+  useEffect(() => {
+    async function loadSearchData() {
+      try {
+        setLoading(true);
+        // Load active categories
+        const { data: catsData, error: catsError } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('active', true)
+          .order('name', { ascending: true });
+
+        if (catsData) {
+          setCategories(catsData);
+        }
+
+        // Load active products with categories and images joined
+        const { data: prodsData, error: prodsError } = await supabase
+          .from('products')
+          .select('*, category:categories(*), product_images(*)')
+          .eq('active', true)
+          .order('created_at', { ascending: false });
+
+        if (prodsData) {
+          setProducts(prodsData as Product[]);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar dados de busca:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSearchData();
+  }, []);
 
   // Handle Search Input Submit
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -47,8 +86,19 @@ function SearchContent() {
     router.push('/busca');
   };
 
-  // Filter and sort products
-  let filteredProducts = MOCK_PRODUCTS.filter((prod) => {
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-[#00ff66] animate-spin mb-4" />
+        <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest animate-pulse">
+          SINTONIZANDO SISTEMA DE BUSCA...
+        </span>
+      </div>
+    );
+  }
+
+  // Filter and sort products in-memory for instant feedback
+  let filteredProducts = products.filter((prod) => {
     // 1. Search Query Match
     const matchesQuery = 
       !query.trim() || 
@@ -173,7 +223,7 @@ function SearchContent() {
             >
               TODAS
             </button>
-            {MOCK_CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => {

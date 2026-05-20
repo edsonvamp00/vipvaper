@@ -23,11 +23,11 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
   const [settings, setSettings] = useState<StoreSettings>({
-    storeName: 'VIP VAPER',
+    storeName: 'VIPVIPER',
     pixKey: '00000000000000000000000000000000',
-    pixReceiver: 'Vip Vaper Inc.',
+    pixReceiver: 'VipViper Inc.',
     whatsappNumber: '5511999999999',
-    whatsappMessage: 'Olá! Vim do site Vip Vaper e gostaria de finalizar meu pedido.',
+    whatsappMessage: 'Olá! Vim do site VipViper e gostaria de finalizar meu pedido.',
     deliveryFee: 20.00
   });
 
@@ -196,7 +196,7 @@ export default function AdminSettingsPage() {
               value={settings.storeName}
               onChange={(e) => setSettings({...settings, storeName: e.target.value})}
               className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
-              placeholder="VIP VAPER"
+              placeholder="VIPVIPER"
             />
           </div>
 

@@ -18,7 +18,7 @@ export const Header: React.FC = () => {
       <Link href="/" className="flex items-center gap-1.5">
         <span className="w-2 h-2 rounded-full bg-[#00ff66] cyber-pulse-dot" />
         <span className="font-cyber-orbitron font-black text-lg tracking-wider text-white">
-          VIP<span className="text-[#00ff66] cyber-glow-text">VAPER</span>
+          VIP<span className="text-[#00ff66] cyber-glow-text">VIPER</span>
         </span>
       </Link>
 
@@ -43,7 +43,7 @@ export const Header: React.FC = () => {
 
         {/* Profile Link */}
         <Link 
-          href={user ? "/perfil" : "/login"} 
+          href="/perfil" 
           className="p-2 rounded-full text-zinc-400 hover:text-[#00ff66] transition-colors duration-200"
           aria-label="Perfil do usuário"
         >
