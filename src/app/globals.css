@@ -1,26 +1,102 @@
 @import "tailwindcss";
 
+@theme {
+  --color-cyber-bg: #020203;
+  --color-cyber-card: #09090c;
+  --color-cyber-green: #00ff66;
+  --color-cyber-green-dim: #00b347;
+  --color-cyber-green-dark: #042f1a;
+  --color-cyber-cyan: #00f0ff;
+  --color-cyber-gray: #16161a;
+  --color-cyber-gray-light: #24242b;
+  --color-cyber-border: rgba(0, 255, 102, 0.15);
+  --color-cyber-border-cyan: rgba(0, 240, 255, 0.15);
+  
+  --font-cyber-orbitron: var(--font-orbitron);
+  --font-cyber-inter: var(--font-inter);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #020203;
+  --foreground: #ffffff;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-cyber-inter), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #020203;
+}
+::-webkit-scrollbar-thumb {
+  background: #16161a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff66;
+}
+
+/* Cyberpunk Glow Utilities */
+.cyber-glow-green {
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.15);
+}
+
+.cyber-glow-green-hover:hover {
+  box-shadow: 0 0 25px rgba(0, 255, 102, 0.3);
+  border-color: rgba(0, 255, 102, 0.5);
+}
+
+.cyber-glow-text {
+  text-shadow: 0 0 8px rgba(0, 255, 102, 0.5);
+}
+
+/* Cyberpunk Glassmorphism */
+.cyber-glass {
+  background: rgba(9, 9, 12, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 255, 102, 0.15);
+}
+
+.cyber-glass-cyan {
+  background: rgba(9, 9, 12, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+}
+
+/* Diagonal Cut / Tech Accents */
+.cyber-cut-corners {
+  clip-path: polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px);
+}
+
+/* Cyber Grid Background Pattern */
+.cyber-grid-bg {
+  background-size: 30px 30px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 255, 102, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
+}
+
+/* Neon Pulse Animation */
+@keyframes cyber-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.5);
+  }
+}
+
+.cyber-pulse-dot {
+  animation: cyber-pulse 2s infinite ease-in-out;
 }
