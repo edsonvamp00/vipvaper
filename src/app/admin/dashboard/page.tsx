@@ -18,7 +18,7 @@ interface MockAdminOrder {
 }
 
 export default function AdminDashboardPage() {
-  const { signOut, isAdmin, loading: authLoading } = useAuth();
+  const { signOut } = useAuth();
   const router = useRouter();
   const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,23 +40,57 @@ export default function AdminDashboardPage() {
   ]);
 
   useEffect(() => {
-    // Check if logged in via demo bypass or standard admin role
-    const demoAdminToken = localStorage.getItem('vip_vaper_demo_admin');
-    if (demoAdminToken === 'true') {
-      setIsDemo(true);
-      setLoading(false);
-      return;
+    async function checkAccess() {
+      // 1. Check demo mode
+      if (localStorage.getItem('vip_vaper_demo_admin') === 'true') {
+        setIsDemo(true);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Check if login page already verified admin (fast path)
+      if (localStorage.getItem('vip_admin_verified') === 'true') {
+        // Clear the flag so it doesn't persist forever
+        localStorage.removeItem('vip_admin_verified');
+        setLoading(false);
+        return;
+      }
+
+      // 3. Verify directly with Supabase (for page refreshes)
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          router.push('/admin/login');
+          return;
+        }
+
+        const userEmail = (session.user.email || '').toLowerCase();
+        const isMasterAdmin = userEmail === 'admin@vipvaper.com' || userEmail === 'admin@vipviper.com';
+
+        if (isMasterAdmin) {
+          setLoading(false);
+          return;
+        }
+
+        // Check admin_users table
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (adminData) {
+          setLoading(false);
+        } else {
+          router.push('/admin/login');
+        }
+      } catch {
+        router.push('/admin/login');
+      }
     }
 
-    // Wait until AuthContext is done checking Supabase
-    if (authLoading) return;
-
-    if (!isAdmin) {
-      router.push('/admin/login');
-    } else {
-      setLoading(false);
-    }
-  }, [isAdmin, authLoading, router]);
+    checkAccess();
+  }, [router]);
 
   // Load real Supabase data if not in demo mode
   useEffect(() => {

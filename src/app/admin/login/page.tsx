@@ -8,29 +8,54 @@ import { MobileShell } from '@/components/common/MobileShell';
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert, Key, Mail, Terminal, ChevronRight } from 'lucide-react';
 
+const MASTER_ADMIN_EMAILS = ['admin@vipvaper.com', 'admin@vipviper.com'];
+
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
-  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
 
-  // Escuta as mudanças no AuthContext para redirecionar ou bloquear
+  // On mount: check if already logged in as admin — if so, redirect immediately
   useEffect(() => {
-    // Só toma ação se nós estivermos no meio de um processo de loading de login iniciado aqui
-    // ou se o usuário já estiver logado e for admin
-    if (user && !authLoading) {
-      if (isAdmin) {
-        window.location.href = '/admin/dashboard';
-      } else if (loading) {
-        // Se acabou de tentar logar e não é admin
-        setErrorMsg('Acesso negado: Usuário não tem privilégios de administrador.');
-        setLoading(false);
-        signOut();
+    async function checkExistingSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const isAdmin = await verifyAdmin(session.user.id, session.user.email || '');
+          if (isAdmin) {
+            window.location.href = '/admin/dashboard';
+            return;
+          }
+        }
+      } catch {
+        // Ignore errors, just show login form
       }
+      setCheckingSession(false);
     }
-  }, [user, isAdmin, authLoading, router, loading, signOut]);
+    checkExistingSession();
+  }, []);
+
+  // Verify admin status directly — no dependency on AuthContext
+  async function verifyAdmin(userId: string, userEmail: string): Promise<boolean> {
+    // 1. Check hardcoded master admin emails
+    if (MASTER_ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
+      return true;
+    }
+    // 2. Check admin_users table
+    try {
+      const { data } = await supabase
+        .from('admin_users')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      return !!data;
+    } catch {
+      return false;
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +63,8 @@ export default function AdminLoginPage() {
     setErrorMsg('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // 1. Authenticate with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -46,11 +72,29 @@ export default function AdminLoginPage() {
       if (error) {
         throw error;
       }
-      // Não redirecionamos aqui. O useEffect acima vai detectar que o user mudou
-      // e vai esperar o AuthContext confirmar se ele é isAdmin ou não.
+
+      const user = data.user;
+      if (!user) {
+        throw new Error('Usuário não encontrado.');
+      }
+
+      // 2. Verify admin status directly (NOT via AuthContext)
+      const isAdmin = await verifyAdmin(user.id, user.email || '');
+
+      if (isAdmin) {
+        // 3. Mark as verified admin in localStorage for the dashboard to read instantly
+        localStorage.setItem('vip_admin_verified', 'true');
+        // 4. Full page navigation to ensure clean state
+        window.location.href = '/admin/dashboard';
+      } else {
+        // Not an admin — sign out and show error
+        await supabase.auth.signOut();
+        setErrorMsg('Acesso negado: este usuário não tem privilégios de administrador.');
+        setLoading(false);
+      }
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || 'Erro ao efetuar login. Verifique se o e-mail/senha estão corretos.');
+      setErrorMsg(err.message || 'Erro ao efetuar login. Verifique se o e-mail e a senha estão corretos.');
       setLoading(false);
     }
   };
@@ -60,6 +104,20 @@ export default function AdminLoginPage() {
     localStorage.setItem('vip_vaper_demo_admin', 'true');
     router.push('/admin/dashboard');
   };
+
+  // Show loading while checking existing session
+  if (checkingSession) {
+    return (
+      <MobileShell showHeader={false} showBottomNav={false}>
+        <div className="flex flex-col items-center justify-center py-40">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
+          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+            VERIFICANDO SESSÃO...
+          </span>
+        </div>
+      </MobileShell>
+    );
+  }
 
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
