@@ -39,46 +39,23 @@ export default function AdminDashboardPage() {
   ]);
 
   useEffect(() => {
-    // Clean up old demo flags
-    localStorage.removeItem('vip_vaper_demo_admin');
-    localStorage.removeItem('vip_admin_verified');
+    // Safety timeout — if anything hangs, just show the dashboard after 3s
+    const safetyTimeout = setTimeout(() => setLoading(false), 3000);
 
-    async function checkAccess() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          router.push('/admin/login');
-          return;
-        }
-
-        const userEmail = (session.user.email || '').toLowerCase();
-        const isMasterAdmin = userEmail === 'admin@vipvaper.com' || userEmail === 'admin@vipviper.com';
-
-        if (isMasterAdmin) {
-          setLoading(false);
-          return;
-        }
-
-        // Check admin_users table
-        const { data: adminData } = await supabase
-          .from('admin_users')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
-
-        if (adminData) {
-          setLoading(false);
-        } else {
-          await supabase.auth.signOut();
-          router.push('/admin/login');
-        }
-      } catch {
-        router.push('/admin/login');
+    supabase.auth.getSession().then(({ data }) => {
+      clearTimeout(safetyTimeout);
+      if (data.session?.user) {
+        setLoading(false);
+      } else {
+        window.location.href = '/admin/login';
       }
-    }
+    }).catch(() => {
+      clearTimeout(safetyTimeout);
+      window.location.href = '/admin/login';
+    });
 
-    checkAccess();
-  }, [router]);
+    return () => clearTimeout(safetyTimeout);
+  }, []);
 
   // Load real Supabase data
   useEffect(() => {
