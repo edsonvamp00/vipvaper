@@ -18,7 +18,7 @@ interface MockAdminOrder {
 }
 
 export default function AdminDashboardPage() {
-  const { signOut, isAdmin } = useAuth();
+  const { signOut, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
   const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,25 +45,18 @@ export default function AdminDashboardPage() {
     if (demoAdminToken === 'true') {
       setIsDemo(true);
       setLoading(false);
-    } else {
-      const checkAccess = () => {
-        if (!isAdmin) {
-          const timeout = setTimeout(() => {
-            const currentDemo = localStorage.getItem('vip_vaper_demo_admin') === 'true';
-            if (!isAdmin && !currentDemo) {
-              router.push('/admin/login');
-            } else {
-              setLoading(false);
-            }
-          }, 1200);
-          return () => clearTimeout(timeout);
-        } else {
-          setLoading(false);
-        }
-      };
-      checkAccess();
+      return;
     }
-  }, [isAdmin, router]);
+
+    // Wait until AuthContext is done checking Supabase
+    if (authLoading) return;
+
+    if (!isAdmin) {
+      router.push('/admin/login');
+    } else {
+      setLoading(false);
+    }
+  }, [isAdmin, authLoading, router]);
 
   // Load real Supabase data if not in demo mode
   useEffect(() => {

@@ -9,7 +9,7 @@ const supabase = createClient(url, key);
 
 async function run() {
   console.log('Wiping products...');
-  const { error } = await supabase.from('products').delete().neq('id', '0');
+  const { error } = await supabase.from('products').delete().neq('name', 'non_existent_product');
   console.log('Done:', error);
 }
 
