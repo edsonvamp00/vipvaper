@@ -49,32 +49,21 @@ export default function AdminProductsPage() {
     try {
       setLoading(true);
       
-      // Load categories
-      const { data: catData, error: catErr } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-      
-      if (catErr) throw catErr;
-      setCategories(catData || MOCK_CATEGORIES);
-
-      // Load products
-      const { data: prodData, error: prodErr } = await supabase
-        .from('products')
-        .select(`
+      // Parallel fetch: categories + products at the same time
+      const [catResult, prodResult] = await Promise.all([
+        supabase.from('categories').select('*').order('name'),
+        supabase.from('products').select(`
           *,
           category:categories(*),
           product_images(*)
-        `)
-        .order('created_at', { ascending: false });
+        `).order('created_at', { ascending: false })
+      ]);
 
-      if (prodErr) throw prodErr;
-      
-      if (prodData) {
-        setProducts(prodData);
-      } else {
-        setProducts(MOCK_PRODUCTS);
-      }
+      if (catResult.error) throw catResult.error;
+      if (prodResult.error) throw prodResult.error;
+
+      setCategories(catResult.data || MOCK_CATEGORIES);
+      setProducts(prodResult.data || MOCK_PRODUCTS);
     } catch (err) {
       console.error('Erro ao carregar dados do Supabase, utilizando dados locais (Demo):', err);
       setIsDemo(true);
@@ -277,18 +266,7 @@ export default function AdminProductsPage() {
     }
   };
 
-  if (loading && products.length === 0) {
-    return (
-      <MobileShell showHeader={false} showBottomNav={false}>
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            CARREGANDO PRODUTOS...
-          </span>
-        </div>
-      </MobileShell>
-    );
-  }
+
 
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
@@ -470,106 +448,117 @@ export default function AdminProductsPage() {
 
       {/* Main UI list */}
       <div className="flex flex-col gap-4">
-        {/* Actions bar (Search & Add) */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Pesquisar pod, juice..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-xl px-3 py-2.5 pl-9 text-xs text-zinc-300 focus:outline-none focus:border-red-500/30 transition-all font-cyber-inter"
-            />
-            <Search className="absolute left-3 top-3 w-3.5 h-3.5 text-zinc-500" />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
+            <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+              CARREGANDO PRODUTOS...
+            </span>
           </div>
-          <button
-            onClick={handleNew}
-            className="px-4 bg-red-500 hover:bg-red-600 rounded-xl text-white font-cyber-orbitron font-black text-[10px] tracking-wider uppercase flex items-center gap-1.5 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            NOVO
-          </button>
-        </div>
-
-        {/* Products Table/List */}
-        <div className="flex flex-col gap-3 mt-2 pb-10">
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            {filteredProducts.length} Produtos cadastrados
-          </span>
-
-          {filteredProducts.length === 0 ? (
-            <div className="py-12 border border-dashed border-zinc-800 rounded-2xl text-center">
-              <p className="font-cyber-orbitron text-[10px] text-zinc-500 uppercase tracking-wider mb-1">
-                Nenhum produto cadastrado
-              </p>
-              <p className="font-cyber-inter text-[10px] text-zinc-600">
-                Altere seus filtros de busca ou adicione um novo pod.
-              </p>
+        ) : (
+          <>
+            {/* Actions bar (Search & Add) */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Pesquisar pod, juice..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-xl px-3 py-2.5 pl-9 text-xs text-zinc-300 focus:outline-none focus:border-red-500/30 transition-all font-cyber-inter"
+                />
+                <Search className="absolute left-3 top-3 w-3.5 h-3.5 text-zinc-500" />
+              </div>
+              <button
+                onClick={handleNew}
+                className="px-4 bg-red-500 hover:bg-red-600 rounded-xl text-white font-cyber-orbitron font-black text-[10px] tracking-wider uppercase flex items-center gap-1.5 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                NOVO
+              </button>
             </div>
-          ) : (
-            filteredProducts.map((prod) => {
-              const imgUrl = prod.product_images?.[0]?.image_url ?? 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=800&auto=format&fit=crop&q=80';
-              return (
-                <div 
-                  key={prod.id}
-                  className="p-3.5 bg-[#09090c] border border-zinc-900 rounded-xl flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Small image preview */}
-                    <div className="w-12 h-12 rounded-lg bg-zinc-950 overflow-hidden border border-zinc-900 shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img 
-                        src={imgUrl} 
-                        alt={prod.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
 
-                    <div className="flex flex-col">
-                      <span className="text-[8px] font-cyber-orbitron text-red-500 font-bold uppercase tracking-wider">
-                        {prod.category?.name ?? 'Categoria'}
-                      </span>
-                      <h4 className="font-cyber-inter text-xs font-bold text-white line-clamp-1 leading-snug">
-                        {prod.name}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="font-cyber-orbitron text-[10px] text-[#00ff66] font-black">
-                          R$ {(prod.promo_price || prod.price).toFixed(2)}
-                        </span>
-                        <span className="text-[9px] font-cyber-inter text-zinc-500">
-                          Estoque: <b className={prod.stock === 0 ? 'text-red-500' : 'text-zinc-300'}>{prod.stock}</b>
-                        </span>
-                        {!prod.active && (
-                          <span className="px-1.5 py-0.5 bg-red-500/10 text-red-400 font-cyber-orbitron text-[7px] font-black rounded border border-red-500/20">
-                            INATIVO
+            {/* Products Table/List */}
+            <div className="flex flex-col gap-3 mt-2 pb-10">
+              <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                {filteredProducts.length} Produtos cadastrados
+              </span>
+
+              {filteredProducts.length === 0 ? (
+                <div className="py-12 border border-dashed border-zinc-800 rounded-2xl text-center">
+                  <p className="font-cyber-orbitron text-[10px] text-zinc-500 uppercase tracking-wider mb-1">
+                    Nenhum produto cadastrado
+                  </p>
+                  <p className="font-cyber-inter text-[10px] text-zinc-600">
+                    Altere seus filtros de busca ou adicione um novo pod.
+                  </p>
+                </div>
+              ) : (
+                filteredProducts.map((prod) => {
+                  const imgUrl = prod.product_images?.[0]?.image_url ?? 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=800&auto=format&fit=crop&q=80';
+                  return (
+                    <div 
+                      key={prod.id}
+                      className="p-3.5 bg-[#09090c] border border-zinc-900 rounded-xl flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Small image preview */}
+                        <div className="w-12 h-12 rounded-lg bg-zinc-950 overflow-hidden border border-zinc-900 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img 
+                            src={imgUrl} 
+                            alt={prod.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-cyber-orbitron text-red-500 font-bold uppercase tracking-wider">
+                            {prod.category?.name ?? 'Categoria'}
                           </span>
-                        )}
+                          <h4 className="font-cyber-inter text-xs font-bold text-white line-clamp-1 leading-snug">
+                            {prod.name}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="font-cyber-orbitron text-[10px] text-[#00ff66] font-black">
+                              R$ {(prod.promo_price || prod.price).toFixed(2)}
+                            </span>
+                            <span className="text-[9px] font-cyber-inter text-zinc-500">
+                              Estoque: <b className={prod.stock === 0 ? 'text-red-500' : 'text-zinc-300'}>{prod.stock}</b>
+                            </span>
+                            {!prod.active && (
+                              <span className="px-1.5 py-0.5 bg-red-500/10 text-red-400 font-cyber-orbitron text-[7px] font-black rounded border border-red-500/20">
+                                INATIVO
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions buttons */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleEdit(prod)}
+                          className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#00f0ff] hover:border-[#00f0ff]/20 transition-all duration-200"
+                          aria-label="Editar produto"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(prod.id)}
+                          className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-500 hover:border-red-500/20 transition-all duration-200"
+                          aria-label="Excluir produto"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Actions buttons */}
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => handleEdit(prod)}
-                      className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#00f0ff] hover:border-[#00f0ff]/20 transition-all duration-200"
-                      aria-label="Editar produto"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(prod.id)}
-                      className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-500 hover:border-red-500/20 transition-all duration-200"
-                      aria-label="Excluir produto"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        )}
       </div>
     </MobileShell>
   );

@@ -179,20 +179,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <MobileShell showHeader={false} showBottomNav={false}>
-        <div className="flex flex-col items-center justify-center py-40">
-
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            SISTEMA INICIALIZANDO...
-          </span>
-        </div>
-      </MobileShell>
-    );
-  }
-
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
       {/* 1. Header with Logout and Branding */}
@@ -211,6 +197,16 @@ export default function AdminDashboardPage() {
           SAIR
         </button>
       </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-32">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
+          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+            CARREGANDO PAINEL...
+          </span>
+        </div>
+      ) : (
+      <>
 
 
 
@@ -344,6 +340,8 @@ export default function AdminDashboardPage() {
         [ VOLTAR À LOJA DO CLIENTE ]
         <ExternalLink className="w-3.5 h-3.5" />
       </Link>
+      </>
+      )}
     </MobileShell>
   );
 }

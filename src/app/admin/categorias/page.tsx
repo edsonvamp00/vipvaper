@@ -175,18 +175,7 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  if (loading && categories.length === 0) {
-    return (
-      <MobileShell showHeader={false} showBottomNav={false}>
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            CARREGANDO CATEGORIAS...
-          </span>
-        </div>
-      </MobileShell>
-    );
-  }
+
 
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
@@ -280,68 +269,79 @@ export default function AdminCategoriesPage() {
 
       {/* Categories List */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            {categories.length} Categorias cadastradas
-          </span>
-          <button
-            onClick={handleNew}
-            className="py-2.5 px-4 bg-red-500 hover:bg-red-600 rounded-xl text-white font-cyber-orbitron font-black text-[10px] tracking-wider uppercase flex items-center gap-1.5 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            NOVA CATEGORIA
-          </button>
-        </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
+            <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+              CARREGANDO CATEGORIAS...
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                {categories.length} Categorias cadastradas
+              </span>
+              <button
+                onClick={handleNew}
+                className="py-2.5 px-4 bg-red-500 hover:bg-red-600 rounded-xl text-white font-cyber-orbitron font-black text-[10px] tracking-wider uppercase flex items-center gap-1.5 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                NOVA CATEGORIA
+              </button>
+            </div>
 
-        <div className="flex flex-col gap-3 mt-2">
-          {categories.map((cat) => (
-            <div 
-              key={cat.id}
-              className="p-3.5 bg-[#09090c] border border-zinc-900 rounded-xl flex items-center justify-between gap-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-900 flex items-center justify-center shrink-0">
-                  <Layers className="w-4 h-4 text-red-500" />
-                </div>
-                <div className="flex flex-col">
-                  <h4 className="font-cyber-inter text-xs font-bold text-white leading-snug">
-                    {cat.name}
-                  </h4>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[8px] font-cyber-orbitron text-zinc-500">
-                      SLUG: {cat.slug}
-                    </span>
-                    <span className={`px-1.5 py-0.5 text-[7px] font-cyber-orbitron font-black rounded border ${
-                      cat.active 
-                        ? 'bg-[#00ff66]/10 border-[#00ff66]/20 text-[#00ff66]' 
-                        : 'bg-red-500/10 border-red-500/20 text-red-400'
-                    }`}>
-                      {cat.active ? 'ATIVA' : 'INATIVA'}
-                    </span>
+            <div className="flex flex-col gap-3 mt-2">
+              {categories.map((cat) => (
+                <div 
+                  key={cat.id}
+                  className="p-3.5 bg-[#09090c] border border-zinc-900 rounded-xl flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-900 flex items-center justify-center shrink-0">
+                      <Layers className="w-4 h-4 text-red-500" />
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="font-cyber-inter text-xs font-bold text-white leading-snug">
+                        {cat.name}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[8px] font-cyber-orbitron text-zinc-500">
+                          SLUG: {cat.slug}
+                        </span>
+                        <span className={`px-1.5 py-0.5 text-[7px] font-cyber-orbitron font-black rounded border ${
+                          cat.active 
+                            ? 'bg-[#00ff66]/10 border-[#00ff66]/20 text-[#00ff66]' 
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        }`}>
+                          {cat.active ? 'ATIVA' : 'INATIVA'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleEdit(cat)}
+                      className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#00f0ff] hover:border-[#00f0ff]/20 transition-all duration-200"
+                      aria-label="Editar categoria"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(cat.id)}
+                      className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-500 hover:border-red-500/20 transition-all duration-200"
+                      aria-label="Excluir categoria"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => handleEdit(cat)}
-                  className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#00f0ff] hover:border-[#00f0ff]/20 transition-all duration-200"
-                  aria-label="Editar categoria"
-                >
-                  <Edit className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(cat.id)}
-                  className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-500 hover:border-red-500/20 transition-all duration-200"
-                  aria-label="Excluir categoria"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
     </MobileShell>
   );

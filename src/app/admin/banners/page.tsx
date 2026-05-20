@@ -222,19 +222,6 @@ export default function AdminBannersPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <MobileShell showHeader={false} showBottomNav={false}>
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-[#00ff66] animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            CARREGANDO BANNERS...
-          </span>
-        </div>
-      </MobileShell>
-    );
-  }
-
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
       {/* Top bar with back to dash */}
@@ -263,6 +250,16 @@ export default function AdminBannersPage() {
           </div>
         </div>
       )}
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-32">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-[#00ff66] animate-spin mb-4" />
+          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+            CARREGANDO BANNERS...
+          </span>
+        </div>
+      ) : (
+      <>
 
       {/* Seção 1: Adicionar Novo Banner (Apenas se menor que 5) */}
       <div className="mb-6 p-4 bg-[#09090c] border border-zinc-900 rounded-xl relative overflow-hidden">
@@ -474,6 +471,8 @@ export default function AdminBannersPage() {
             </div>
           ))}
         </div>
+      )}
+      </>
       )}
     </MobileShell>
   );

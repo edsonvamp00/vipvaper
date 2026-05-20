@@ -172,19 +172,6 @@ export default function AdminReviewsPage() {
   const pendingReviews = reviews.filter(rev => !rev.approved);
   const approvedReviews = reviews.filter(rev => rev.approved);
 
-  if (loading) {
-    return (
-      <MobileShell showHeader={false} showBottomNav={false}>
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            CARREGANDO COMENTÁRIOS...
-          </span>
-        </div>
-      </MobileShell>
-    );
-  }
-
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
       {/* Top bar with back to dash */}
@@ -214,6 +201,15 @@ export default function AdminReviewsPage() {
         </div>
       )}
 
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-32">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
+          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+            CARREGANDO COMENTÁRIOS...
+          </span>
+        </div>
+      ) : (
+      <>
       {/* Seção 1: Pendentes */}
       <h3 className="font-cyber-orbitron text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 border-b border-amber-500/10 pb-1.5">
         <ShieldAlert className="w-4 h-4" />
@@ -350,6 +346,8 @@ export default function AdminReviewsPage() {
             </div>
           ))}
         </div>
+      )}
+      </>
       )}
     </MobileShell>
   );
