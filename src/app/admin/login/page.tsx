@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +14,23 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
+  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
+
+  // Escuta as mudanças no AuthContext para redirecionar ou bloquear
+  useEffect(() => {
+    // Só toma ação se nós estivermos no meio de um processo de loading de login iniciado aqui
+    // ou se o usuário já estiver logado e for admin
+    if (user && !authLoading) {
+      if (isAdmin) {
+        router.push('/admin/dashboard');
+      } else if (loading) {
+        // Se acabou de tentar logar e não é admin
+        setErrorMsg('Acesso negado: Usuário não tem privilégios de administrador.');
+        setLoading(false);
+        signOut();
+      }
+    }
+  }, [user, isAdmin, authLoading, router, loading, signOut]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +38,7 @@ export default function AdminLoginPage() {
     setErrorMsg('');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -29,23 +46,8 @@ export default function AdminLoginPage() {
       if (error) {
         throw error;
       }
-
-      if (data.user) {
-        // Verificar se é admin antes de deixar passar
-        const { data: adminData } = await supabase
-          .from('admin_users')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (!adminData) {
-          await supabase.auth.signOut();
-          throw new Error('Acesso negado: Usuário não tem privilégios de administrador.');
-        }
-
-        // Usar window.location para forçar o recarregamento do AuthContext no dashboard
-        window.location.href = '/admin/dashboard';
-      }
+      // Não redirecionamos aqui. O useEffect acima vai detectar que o user mudou
+      // e vai esperar o AuthContext confirmar se ele é isAdmin ou não.
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'Erro ao efetuar login. Verifique se o e-mail/senha estão corretos.');
@@ -55,7 +57,6 @@ export default function AdminLoginPage() {
 
   // Demo Bypass to explore admin capabilities easily
   const handleDemoBypass = () => {
-    // Set a session item to simulate demo admin access
     localStorage.setItem('vip_vaper_demo_admin', 'true');
     router.push('/admin/dashboard');
   };
