@@ -32,31 +32,23 @@ export default function AdminSettingsPage() {
   });
 
   useEffect(() => {
-    // Check admin access
-    const demoAdminToken = localStorage.getItem('vip_vaper_demo_admin');
-    if (demoAdminToken === 'true') {
-      setIsDemo(true);
-      loadLocalSettings();
-      setLoading(false);
-    } else {
-      const checkAccess = () => {
-        if (!isAdmin) {
-          const timeout = setTimeout(() => {
-            const currentDemo = localStorage.getItem('vip_vaper_demo_admin') === 'true';
-            if (!isAdmin && !currentDemo) {
-              router.push('/admin/login');
-            } else {
-              loadSupabaseSettings();
-            }
-          }, 1200);
-          return () => clearTimeout(timeout);
-        } else {
-          loadSupabaseSettings();
-        }
-      };
-      checkAccess();
-    }
-  }, [isAdmin, router]);
+    // Safety timeout — if anything hangs, just show the settings after 3s
+    const safetyTimeout = setTimeout(() => setLoading(false), 3000);
+
+    supabase.auth.getSession().then(({ data }) => {
+      clearTimeout(safetyTimeout);
+      if (data.session?.user) {
+        loadSupabaseSettings();
+      } else {
+        window.location.href = '/admin/login';
+      }
+    }).catch(() => {
+      clearTimeout(safetyTimeout);
+      window.location.href = '/admin/login';
+    });
+
+    return () => clearTimeout(safetyTimeout);
+  }, []);
 
   const loadLocalSettings = () => {
     try {
