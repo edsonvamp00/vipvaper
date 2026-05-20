@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { MobileShell } from '@/components/common/MobileShell';
 import Link from 'next/link';
-import { DollarSign, ShoppingBag, ClipboardList, Layers, ArrowLeft, LogOut, ExternalLink, Activity, ArrowRight, Sparkles } from 'lucide-react';
+import { DollarSign, ShoppingBag, ClipboardList, Layers, ArrowLeft, LogOut, ExternalLink, Activity, ArrowRight } from 'lucide-react';
 
 interface MockAdminOrder {
   id: string;
@@ -20,7 +20,6 @@ interface MockAdminOrder {
 export default function AdminDashboardPage() {
   const { signOut } = useAuth();
   const router = useRouter();
-  const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Stats state initialized with fallback demo data
@@ -40,23 +39,11 @@ export default function AdminDashboardPage() {
   ]);
 
   useEffect(() => {
+    // Clean up old demo flags
+    localStorage.removeItem('vip_vaper_demo_admin');
+    localStorage.removeItem('vip_admin_verified');
+
     async function checkAccess() {
-      // 1. Check demo mode
-      if (localStorage.getItem('vip_vaper_demo_admin') === 'true') {
-        setIsDemo(true);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Check if login page already verified admin (fast path)
-      if (localStorage.getItem('vip_admin_verified') === 'true') {
-        // Clear the flag so it doesn't persist forever
-        localStorage.removeItem('vip_admin_verified');
-        setLoading(false);
-        return;
-      }
-
-      // 3. Verify directly with Supabase (for page refreshes)
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
@@ -82,6 +69,7 @@ export default function AdminDashboardPage() {
         if (adminData) {
           setLoading(false);
         } else {
+          await supabase.auth.signOut();
           router.push('/admin/login');
         }
       } catch {
@@ -92,10 +80,9 @@ export default function AdminDashboardPage() {
     checkAccess();
   }, [router]);
 
-  // Load real Supabase data if not in demo mode
+  // Load real Supabase data
   useEffect(() => {
     if (loading) return;
-    if (isDemo) return;
 
     async function loadDashboardData() {
       try {
@@ -147,10 +134,10 @@ export default function AdminDashboardPage() {
     }
 
     loadDashboardData();
-  }, [loading, isDemo]);
+  }, [loading]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('vip_vaper_demo_admin');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     signOut();
     router.push('/admin/login');
   };
@@ -244,14 +231,7 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
-      {isDemo && (
-        <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[10px] font-cyber-inter rounded-xl flex items-center justify-between gap-3 mb-6 relative">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 shrink-0" />
-            <span>Você está operando no <b>Modo Demonstração</b> com dados locais.</span>
-          </div>
-        </div>
-      )}
+
 
       {/* 2. Grid metrics statistics */}
       <div className="grid grid-cols-2 gap-4 mb-6">
