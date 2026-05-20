@@ -114,9 +114,13 @@ export default function AdminDashboardPage() {
   }, [loading]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    signOut();
-    router.push('/admin/login');
+    try {
+      await supabase.auth.signOut();
+      await signOut();
+    } catch (err) {
+      console.error('Erro ao deslogar:', err);
+    }
+    window.location.href = '/admin/login';
   };
 
   const getStatusStyle = (status: string) => {
