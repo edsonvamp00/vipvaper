@@ -107,17 +107,17 @@ export default function Home() {
           <Layers className="w-3.5 h-3.5 text-[#00ff66]" />
           Explore por Categoria
         </h2>
-        <div className="grid grid-cols-4 gap-2.5 w-full items-start">
+        <div className="grid grid-cols-4 gap-2.5 w-full">
           {categories.map((cat) => (
             <Link 
               key={cat.id} 
               href={`/categoria/${cat.slug}`}
-              className="flex flex-col items-center justify-start gap-2 group cursor-pointer text-center h-full"
+              className="flex flex-col items-center group cursor-pointer text-center"
             >
-              <div className="w-12 h-12 rounded-full border border-zinc-800 bg-[#09090c] flex items-center justify-center group-hover:border-[#00ff66]/40 group-hover:bg-[#00ff66]/5 group-hover:shadow-[0_0_15px_rgba(0,255,102,0.1)] transition-all duration-300 shrink-0">
+              <div className="w-12 h-12 rounded-full border border-zinc-800 bg-[#09090c] flex items-center justify-center group-hover:border-[#00ff66]/40 group-hover:bg-[#00ff66]/5 group-hover:shadow-[0_0_15px_rgba(0,255,102,0.1)] transition-all duration-300 shrink-0 mb-2">
                 {getCategoryIcon(cat.slug)}
               </div>
-              <span className="font-cyber-orbitron text-[9px] font-bold text-zinc-400 group-hover:text-white transition-colors duration-200 uppercase tracking-wider text-center block w-full leading-tight min-h-[24px]">
+              <span className="font-cyber-orbitron text-[9px] font-bold text-zinc-400 group-hover:text-white transition-colors duration-200 uppercase tracking-wider text-center block w-full leading-tight min-h-[24px] px-1">
                 {cat.name}
               </span>
             </Link>
