@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
     setErrorMsg('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -30,13 +30,25 @@ export default function AdminLoginPage() {
         throw error;
       }
 
-      // Check if user is admin (fetched in AuthContext)
-      // Redirect to admin dashboard
-      router.push('/admin/dashboard');
+      if (data.user) {
+        // Verificar se é admin antes de deixar passar
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (!adminData) {
+          await supabase.auth.signOut();
+          throw new Error('Acesso negado: Usuário não tem privilégios de administrador.');
+        }
+
+        // Usar window.location para forçar o recarregamento do AuthContext no dashboard
+        window.location.href = '/admin/dashboard';
+      }
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'Erro ao efetuar login. Verifique se o e-mail/senha estão corretos.');
-    } finally {
       setLoading(false);
     }
   };

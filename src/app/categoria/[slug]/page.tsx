@@ -1,6 +1,4 @@
-'use client';
-
-import React, { use, useState, useEffect } from 'react';
+import React from 'react';
 import { MobileShell } from '@/components/common/MobileShell';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { Product, Category } from '@/types';
@@ -12,66 +10,42 @@ interface CategoriaPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default function CategoriaDetalhePage({ params }: CategoriaPageProps) {
-  const resolvedParams = use(params);
-  const { slug } = resolvedParams;
+export const revalidate = 60;
 
-  const [category, setCategory] = useState<Category | undefined>(undefined);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+async function getCategoryData(slug: string) {
+  try {
+    const { data: catData, error: catError } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('slug', slug)
+      .single();
 
-  useEffect(() => {
-    async function loadCategoryAndProducts() {
-      try {
-        setLoading(true);
-        // Fetch Category
-        const { data: catData, error: catError } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('slug', slug)
-          .single();
-
-        if (catError || !catData) {
-          setCategory(undefined);
-          setProducts([]);
-          return;
-        }
-
-        setCategory(catData);
-
-        // Fetch Products for this Category with images and category details
-        const { data: prodsData, error: prodsError } = await supabase
-          .from('products')
-          .select('*, category:categories(*), product_images(*)')
-          .eq('category_id', catData.id)
-          .eq('active', true)
-          .order('created_at', { ascending: false });
-
-        if (prodsData) {
-          setProducts(prodsData as Product[]);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar categoria/produtos:', err);
-      } finally {
-        setLoading(false);
-      }
+    if (catError || !catData) {
+      return { category: null, products: [] };
     }
 
-    loadCategoryAndProducts();
-  }, [slug]);
+    const { data: prodsData } = await supabase
+      .from('products')
+      .select('*, category:categories(*), product_images(*)')
+      .eq('category_id', catData.id)
+      .eq('active', true)
+      .order('created_at', { ascending: false });
 
-  if (loading) {
-    return (
-      <MobileShell showHeader={false}>
-        <div className="flex flex-col items-center justify-center py-40 text-center">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-[#00ff66] animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            CARREGANDO CATEGORIA...
-          </span>
-        </div>
-      </MobileShell>
-    );
+    return {
+      category: catData,
+      products: (prodsData as Product[]) || [],
+    };
+  } catch (err) {
+    console.error('Erro ao buscar categoria/produtos:', err);
+    return { category: null, products: [] };
   }
+}
+
+export default async function CategoriaDetalhePage({ params }: CategoriaPageProps) {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
+
+  const { category, products } = await getCategoryData(slug);
 
   return (
     <MobileShell showHeader={false}>

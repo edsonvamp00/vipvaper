@@ -1,105 +1,60 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { MobileShell } from '@/components/common/MobileShell';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { BannerCarousel } from '@/components/ui/BannerCarousel';
-import { Search, Flame, Award, Zap, Droplet, Layers, Cpu, ShieldCheck } from 'lucide-react';
+import { HomeSearch } from '@/components/ui/HomeSearch';
+import { Flame, Award, Zap, Droplet, Layers, Cpu, ShieldCheck } from 'lucide-react';
 import { Product, Category, Banner } from '@/types';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
-import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_BANNERS } from '@/lib/mockData';
+import { MOCK_CATEGORIES, MOCK_PRODUCTS } from '@/lib/mockData';
 
-export default function Home() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+// Opt out of static generation if we want realtime data or rely on revalidation
+export const revalidate = 60; // Revalidate every 60 seconds
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/busca?q=${encodeURIComponent(searchQuery)}`;
-    }
-  };
+async function getHomeData() {
+  try {
+    const [bannersRes, catsRes, prodsRes] = await Promise.all([
+      supabase.from('banners').select('*').eq('active', true).order('position', { ascending: true }),
+      supabase.from('categories').select('*').eq('active', true),
+      supabase.from('products').select('*, category:categories(*), product_images(*)').eq('active', true).order('created_at', { ascending: false })
+    ]);
+
+    return {
+      banners: bannersRes.data || [],
+      categories: catsRes.data && catsRes.data.length > 0 ? catsRes.data : MOCK_CATEGORIES,
+      products: prodsRes.data && prodsRes.data.length > 0 ? prodsRes.data : MOCK_PRODUCTS,
+    };
+  } catch (error) {
+    console.error('Erro ao buscar dados:', error);
+    return {
+      banners: [],
+      categories: MOCK_CATEGORIES,
+      products: MOCK_PRODUCTS,
+    };
+  }
+}
+
+export default async function Home() {
+  const { banners, categories, products } = await getHomeData();
 
   const getCategoryIcon = (slug: string) => {
     switch (slug) {
-      case 'pods':
-        return <Layers className="w-5 h-5 text-[#00ff66]" />;
-      case 'juices':
-        return <Droplet className="w-5 h-5 text-[#00ff66]" />;
-      case 'coils':
-        return <Cpu className="w-5 h-5 text-[#00ff66]" />;
-      default:
-        return <Zap className="w-5 h-5 text-[#00ff66]" />;
+      case 'pods': return <Layers className="w-5 h-5 text-[#00ff66]" />;
+      case 'juices': return <Droplet className="w-5 h-5 text-[#00ff66]" />;
+      case 'coils': return <Cpu className="w-5 h-5 text-[#00ff66]" />;
+      default: return <Zap className="w-5 h-5 text-[#00ff66]" />;
     }
   };
 
-  // Buscar TUDO do Supabase ao montar
-  useEffect(() => {
-    async function fetchAll() {
-      try {
-        // Banners
-        const { data: bannersData } = await supabase
-          .from('banners')
-          .select('*')
-          .eq('active', true)
-          .order('position', { ascending: true });
-        if (bannersData) setBanners(bannersData);
-
-        // Categorias
-        const { data: catsData } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('active', true);
-        if (catsData && catsData.length > 0) {
-          setCategories(catsData);
-        } else {
-          setCategories(MOCK_CATEGORIES); // Fallback
-        }
-
-        // Produtos com imagens e categoria
-        const { data: prodsData } = await supabase
-          .from('products')
-          .select('*, category:categories(*), product_images(*)')
-          .eq('active', true)
-          .order('created_at', { ascending: false });
-        if (prodsData && prodsData.length > 0) {
-          setProducts(prodsData);
-        } else {
-          setProducts(MOCK_PRODUCTS); // Fallback
-        }
-      } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        // Fallback para mocks em caso de erro
-        setCategories(MOCK_CATEGORIES);
-        setProducts(MOCK_PRODUCTS);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchAll();
-  }, []);
-
   return (
     <MobileShell>
-      {/* 1. Search Bar Top */}
-      <form onSubmit={handleSearchSubmit} className="relative w-full mb-6 mt-2">
-        <input
-          type="text"
-          placeholder="Buscar pods, juices, coils..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-xl px-4 py-3 pl-11 text-sm text-zinc-300 focus:outline-none focus:border-[#00ff66]/40 focus:ring-1 focus:ring-[#00ff66]/20 transition-all duration-300 font-cyber-inter"
-        />
-        <Search className="absolute left-4 top-3.5 w-4 h-4 text-zinc-500" />
-      </form>
+      {/* 1. Search Bar Top (Client Component) */}
+      <HomeSearch />
 
       {/* 2. Banner Promocional Slider (Carousel) */}
-      <BannerCarousel banners={banners} />
+      <BannerCarousel banners={banners as Banner[]} />
 
       {/* 3. Seção de Categorias em Ícones Circulares */}
       <section className="w-full mb-6">
@@ -108,7 +63,7 @@ export default function Home() {
           Explore por Categoria
         </h2>
         <div className="grid grid-cols-4 gap-2.5 w-full">
-          {categories.map((cat) => (
+          {categories.map((cat: any) => (
             <Link 
               key={cat.id} 
               href={`/categoria/${cat.slug}`}
@@ -139,9 +94,9 @@ export default function Home() {
         
         {/* Horizontal sliding list */}
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent snap-x snap-mandatory">
-          {products.slice(0, 3).map((prod) => (
+          {products.slice(0, 3).map((prod: any) => (
             <div key={prod.id} className="min-w-[200px] max-w-[200px] snap-start">
-              <ProductCard product={prod} />
+              <ProductCard product={prod as Product} />
             </div>
           ))}
         </div>
@@ -161,8 +116,8 @@ export default function Home() {
 
         {/* 2 Column Grid */}
         <div className="grid grid-cols-2 gap-4">
-          {products.map((prod) => (
-            <ProductCard key={prod.id} product={prod} />
+          {products.map((prod: any) => (
+            <ProductCard key={prod.id} product={prod as Product} />
           ))}
         </div>
       </section>

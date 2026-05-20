@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Heart } from 'lucide-react';
@@ -11,7 +11,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+const ProductCardInner: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
   const [isFavorite, setIsFavorite] = useState(false);
   const [added, setAdded] = useState(false);
@@ -29,7 +29,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   }, [product.id]);
 
-  const toggleFavorite = (e: React.MouseEvent) => {
+  const toggleFavorite = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -50,15 +50,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [product.id]);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addToCart(product, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
-  };
+  }, [addToCart, product]);
 
   const hasDiscount = product.promo_price !== null && product.promo_price !== undefined && product.promo_price > 0;
   const displayPrice = hasDiscount ? product.promo_price! : product.price;
@@ -98,15 +98,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
       </button>
 
-      {/* Product Image Wrapper */}
-      <div className="w-full aspect-square relative bg-zinc-950 overflow-hidden flex items-center justify-center border-b border-zinc-900">
-        {/* We use a fallback if the image is a URL or placeholder */}
-        {mainImage.startsWith('http') || mainImage.startsWith('/') ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+      {/* Product Image Wrapper - NOW USING NEXT/IMAGE */}
+      <div className="w-full aspect-square relative bg-zinc-950 overflow-hidden border-b border-zinc-900">
+        {mainImage.startsWith('http') ? (
+          <Image
             src={mainImage}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            fill
+            sizes="(max-width: 768px) 50vw, 200px"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            quality={75}
+          />
+        ) : mainImage.startsWith('/') ? (
+          <Image
+            src={mainImage}
+            alt={product.name}
+            fill
+            sizes="(max-width: 768px) 50vw, 200px"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            quality={75}
           />
         ) : (
           <div className="w-full h-full bg-[#16161a] flex items-center justify-center font-cyber-orbitron text-zinc-600 text-xs uppercase tracking-wider">
@@ -156,3 +168,5 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     </Link>
   );
 };
+
+export const ProductCard = React.memo(ProductCardInner);

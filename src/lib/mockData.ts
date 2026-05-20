@@ -25,7 +25,7 @@ export const MOCK_PRODUCTS: Product[] = [
     updated_at: '2026-05-20T00:00:00Z',
     category: MOCK_CATEGORIES[0],
     product_images: [
-      { id: 'img1', product_id: 'p1', image_url: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=800&auto=format&fit=crop&q=80', is_main: true, created_at: '' }
+      { id: 'img1', product_id: 'p1', image_url: '/images/elfbar.png', is_main: true, created_at: '' }
     ]
   },
   {
@@ -43,7 +43,7 @@ export const MOCK_PRODUCTS: Product[] = [
     updated_at: '2026-05-20T00:00:00Z',
     category: MOCK_CATEGORIES[1],
     product_images: [
-      { id: 'img2', product_id: 'p2', image_url: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=800&auto=format&fit=crop&q=80', is_main: true, created_at: '' }
+      { id: 'img2', product_id: 'p2', image_url: '/images/nastyjuice.png', is_main: true, created_at: '' }
     ]
   },
   {
@@ -61,7 +61,7 @@ export const MOCK_PRODUCTS: Product[] = [
     updated_at: '2026-05-20T00:00:00Z',
     category: MOCK_CATEGORIES[0],
     product_images: [
-      { id: 'img3', product_id: 'p3', image_url: 'https://images.unsplash.com/photo-1613141411244-0e4ac259d217?w=800&auto=format&fit=crop&q=80', is_main: true, created_at: '' }
+      { id: 'img3', product_id: 'p3', image_url: '/images/vaporesso.png', is_main: true, created_at: '' }
     ]
   },
   {
@@ -79,7 +79,7 @@ export const MOCK_PRODUCTS: Product[] = [
     updated_at: '2026-05-20T00:00:00Z',
     category: MOCK_CATEGORIES[2],
     product_images: [
-      { id: 'img4', product_id: 'p4', image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80', is_main: true, created_at: '' }
+      { id: 'img4', product_id: 'p4', image_url: '/images/vaporesso.png', is_main: true, created_at: '' }
     ]
   }
 ];
@@ -90,7 +90,7 @@ export const MOCK_BANNERS: Banner[] = [
     id: 'b1',
     title: 'NOVA GERAÇÃO ELFBAR',
     subtitle: 'Nuvens de sabor intenso e displays digitais inovadores.',
-    image_url: 'https://images.unsplash.com/photo-1559583985-c80d8ad9b29f?w=1200&auto=format&fit=crop&q=80',
+    image_url: '/images/vape_banner.png',
     link_url: '/categoria/pods',
     active: true,
     position: 0,
