@@ -44,7 +44,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', currentUser.id)
         .single();
 
-      if (adminData) {
+      // Hardcoded bypass for the primary admin email in case the table is not set up correctly
+      const isMasterAdmin = 
+        currentUser.email === 'admin@vipvaper.com' || 
+        currentUser.email === 'admin@vipviper.com';
+
+      if (adminData || isMasterAdmin) {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);

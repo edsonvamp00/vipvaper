@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
     // ou se o usuário já estiver logado e for admin
     if (user && !authLoading) {
       if (isAdmin) {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else if (loading) {
         // Se acabou de tentar logar e não é admin
         setErrorMsg('Acesso negado: Usuário não tem privilégios de administrador.');
