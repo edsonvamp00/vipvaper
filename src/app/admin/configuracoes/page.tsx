@@ -134,19 +134,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <MobileShell showHeader={false} showBottomNav={false}>
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            CARREGANDO PARÂMETROS...
-          </span>
-        </div>
-      </MobileShell>
-    );
-  }
-
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
       {/* Top Header */}
@@ -163,106 +150,117 @@ export default function AdminSettingsPage() {
         </span>
       </div>
 
-      {isDemo && (
-        <div className="p-3 bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[9px] font-cyber-inter rounded-lg mb-4 text-center">
-          Operando em <b>Modo Demonstração</b> com dados locais.
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-40">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
+          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+            CARREGANDO PARÂMETROS...
+          </span>
         </div>
+      ) : (
+        <>
+          {isDemo && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[9px] font-cyber-inter rounded-lg mb-4 text-center">
+              Operando em <b>Modo Demonstração</b> com dados locais.
+            </div>
+          )}
+
+          {/* Configuration Form */}
+          <form onSubmit={handleSave} className="flex flex-col gap-4 pb-12">
+            
+            {/* Core Settings Block */}
+            <div className="bg-[#09090c] border border-zinc-900 rounded-2xl p-5 flex flex-col gap-4 relative">
+              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-red-500" />
+              
+              <h3 className="font-cyber-orbitron text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-2">
+                Configurações Gerais
+              </h3>
+
+              <div>
+                <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Nome da Loja</label>
+                <input
+                  type="text"
+                  required
+                  value={settings.storeName}
+                  onChange={(e) => setSettings({...settings, storeName: e.target.value})}
+                  className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
+                  placeholder="VIPVIPER"
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Telefone Suporte WhatsApp (Código do País + DDD + Número)</label>
+                <input
+                  type="text"
+                  required
+                  value={settings.whatsappNumber}
+                  onChange={(e) => setSettings({...settings, whatsappNumber: e.target.value})}
+                  className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
+                  placeholder="Ex: 5511999999999"
+                />
+                <span className="text-[8px] text-zinc-500 font-cyber-inter mt-1 block">Não coloque espaços, parênteses ou traços. Apenas números!</span>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Taxa de Entrega Local Padrão (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={settings.deliveryFee}
+                  onChange={(e) => setSettings({...settings, deliveryFee: parseFloat(e.target.value)})}
+                  className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
+                  placeholder="20.00"
+                />
+              </div>
+            </div>
+
+            {/* Finance Settings Block */}
+            <div className="bg-[#09090c] border border-zinc-900 rounded-2xl p-5 flex flex-col gap-4 relative">
+              <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-red-500" />
+              
+              <h3 className="font-cyber-orbitron text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-2">
+                Configurações de Recebimento (PIX)
+              </h3>
+
+              <div>
+                <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Chave Copia e Cola PIX Padrão</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={settings.pixKey}
+                  onChange={(e) => setSettings({...settings, pixKey: e.target.value})}
+                  className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter resize-none"
+                  placeholder="Sua chave pix copia e cola para exibição"
+                />
+                <span className="text-[8px] text-zinc-500 font-cyber-inter mt-1 block">Insira o código Pix Estático ou sua chave para o cliente copiar no checkout.</span>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Nome do Recebedor PIX (Exibição)</label>
+                <input
+                  type="text"
+                  required
+                  value={settings.pixReceiver}
+                  onChange={(e) => setSettings({...settings, pixReceiver: e.target.value})}
+                  className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
+                  placeholder="Fulano de Tal Ltda."
+                />
+              </div>
+            </div>
+
+            {/* Save button block */}
+            <button
+              type="submit"
+              className="w-full py-3.5 px-4 rounded-xl bg-red-500 border border-red-500 text-white font-cyber-orbitron font-black text-[11px] tracking-wider uppercase flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.15)] hover:shadow-[0_0_25px_rgba(239,68,68,0.3)] transition-all duration-300 cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              SALVAR CONFIGURAÇÕES DA LOJA
+            </button>
+
+          </form>
+        </>
       )}
-
-      {/* Configuration Form */}
-      <form onSubmit={handleSave} className="flex flex-col gap-4 pb-12">
-        
-        {/* Core Settings Block */}
-        <div className="bg-[#09090c] border border-zinc-900 rounded-2xl p-5 flex flex-col gap-4 relative">
-          <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-red-500" />
-          
-          <h3 className="font-cyber-orbitron text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-2">
-            Configurações Gerais
-          </h3>
-
-          <div>
-            <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Nome da Loja</label>
-            <input
-              type="text"
-              required
-              value={settings.storeName}
-              onChange={(e) => setSettings({...settings, storeName: e.target.value})}
-              className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
-              placeholder="VIPVIPER"
-            />
-          </div>
-
-          <div>
-            <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Telefone Suporte WhatsApp (Código do País + DDD + Número)</label>
-            <input
-              type="text"
-              required
-              value={settings.whatsappNumber}
-              onChange={(e) => setSettings({...settings, whatsappNumber: e.target.value})}
-              className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
-              placeholder="Ex: 5511999999999"
-            />
-            <span className="text-[8px] text-zinc-500 font-cyber-inter mt-1 block">Não coloque espaços, parênteses ou traços. Apenas números!</span>
-          </div>
-
-          <div>
-            <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Taxa de Entrega Local Padrão (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              required
-              value={settings.deliveryFee}
-              onChange={(e) => setSettings({...settings, deliveryFee: parseFloat(e.target.value)})}
-              className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
-              placeholder="20.00"
-            />
-          </div>
-        </div>
-
-        {/* Finance Settings Block */}
-        <div className="bg-[#09090c] border border-zinc-900 rounded-2xl p-5 flex flex-col gap-4 relative">
-          <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-red-500" />
-          
-          <h3 className="font-cyber-orbitron text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-900 pb-2">
-            Configurações de Recebimento (PIX)
-          </h3>
-
-          <div>
-            <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Chave Copia e Cola PIX Padrão</label>
-            <textarea
-              rows={2}
-              required
-              value={settings.pixKey}
-              onChange={(e) => setSettings({...settings, pixKey: e.target.value})}
-              className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter resize-none"
-              placeholder="Sua chave pix copia e cola para exibição"
-            />
-            <span className="text-[8px] text-zinc-500 font-cyber-inter mt-1 block">Insira o código Pix Estático ou sua chave para o cliente copiar no checkout.</span>
-          </div>
-
-          <div>
-            <label className="text-[9px] font-cyber-orbitron text-zinc-500 uppercase block mb-1">Nome do Recebedor PIX (Exibição)</label>
-            <input
-              type="text"
-              required
-              value={settings.pixReceiver}
-              onChange={(e) => setSettings({...settings, pixReceiver: e.target.value})}
-              className="w-full bg-[#0c0c0f] border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-red-500/30 font-cyber-inter"
-              placeholder="Fulano de Tal Ltda."
-            />
-          </div>
-        </div>
-
-        {/* Save button block */}
-        <button
-          type="submit"
-          className="w-full py-3.5 px-4 rounded-xl bg-red-500 border border-red-500 text-white font-cyber-orbitron font-black text-[11px] tracking-wider uppercase flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.15)] hover:shadow-[0_0_25px_rgba(239,68,68,0.3)] transition-all duration-300 cursor-pointer"
-        >
-          <Save className="w-4 h-4" />
-          SALVAR CONFIGURAÇÕES DA LOJA
-        </button>
-
-      </form>
     </MobileShell>
   );
 }

@@ -29,9 +29,9 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [checkingSession, setCheckingSession] = useState(false);
 
-  // On mount: if already logged in as admin, redirect to dashboard
+  // On mount: if already logged in as admin, redirect to dashboard in background
   useEffect(() => {
     // Clean up any old demo flags
     localStorage.removeItem('vip_vaper_demo_admin');
@@ -41,7 +41,11 @@ export default function AdminLoginPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const isAdmin = await verifyAdmin(session.user.id, session.user.email || '');
+          // Add a safety timeout so verifyAdmin doesn't hang the transition
+          const verifyPromise = verifyAdmin(session.user.id, session.user.email || '');
+          const timeoutPromise = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 2000));
+          
+          const isAdmin = await Promise.race([verifyPromise, timeoutPromise]);
           if (isAdmin) {
             window.location.href = '/admin/dashboard';
             return;
@@ -50,10 +54,9 @@ export default function AdminLoginPage() {
             await supabase.auth.signOut();
           }
         }
-      } catch {
-        // Ignore — just show login form
+      } catch (err) {
+        console.error("Erro na verificação de sessão existente:", err);
       }
-      setCheckingSession(false);
     }
     checkExistingSession();
   }, []);
@@ -74,7 +77,10 @@ export default function AdminLoginPage() {
       const user = data.user;
       if (!user) throw new Error('Usuário não encontrado.');
 
-      const isAdmin = await verifyAdmin(user.id, user.email || '');
+      // Add a safety timeout for login verification as well
+      const verifyPromise = verifyAdmin(user.id, user.email || '');
+      const timeoutPromise = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3000));
+      const isAdmin = await Promise.race([verifyPromise, timeoutPromise]);
 
       if (isAdmin) {
         window.location.href = '/admin/dashboard';
@@ -89,19 +95,6 @@ export default function AdminLoginPage() {
       setLoading(false);
     }
   };
-
-  if (checkingSession) {
-    return (
-      <MobileShell showHeader={false} showBottomNav={false}>
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent border-red-500 animate-spin mb-4" />
-          <span className="font-cyber-orbitron text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-            VERIFICANDO SESSÃO...
-          </span>
-        </div>
-      </MobileShell>
-    );
-  }
 
   return (
     <MobileShell showHeader={false} showBottomNav={false}>
