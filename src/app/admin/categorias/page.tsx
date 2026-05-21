@@ -13,9 +13,21 @@ import { ArrowLeft, Plus, Trash2, Edit, Save, X, Layers, Check } from 'lucide-re
 export default function AdminCategoriesPage() {
   const { isAdmin } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_categories');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_categories');
+      return cached ? false : true;
+    }
+    return true;
+  });
   const [isDemo, setIsDemo] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   
   // Editor state
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
@@ -42,7 +54,9 @@ export default function AdminCategoriesPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (categories.length === 0) {
+        setLoading(true);
+      }
       
       const { data, error } = await supabase
         .from('categories')
@@ -51,11 +65,9 @@ export default function AdminCategoriesPage() {
       
       if (error) throw error;
       
-      if (data && data.length > 0) {
-        setCategories(data);
-      } else {
-        setCategories(MOCK_CATEGORIES);
-      }
+      const freshCats = (data && data.length > 0) ? data : MOCK_CATEGORIES;
+      setCategories(freshCats);
+      localStorage.setItem('cached_admin_categories', JSON.stringify(freshCats));
     } catch (err) {
       console.error('Erro ao carregar categorias do Supabase, utilizando dados locais:', err);
       setIsDemo(true);

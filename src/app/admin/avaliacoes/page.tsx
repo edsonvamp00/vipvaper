@@ -25,9 +25,25 @@ interface ReviewWithProduct {
 export default function AdminReviewsPage() {
   const { isAdmin } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  
+  // SWR Caching: load from cached_admin_reviews instantly if available
+  const [reviews, setReviews] = useState<ReviewWithProduct[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_reviews');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+  
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_reviews');
+      return cached ? false : true;
+    }
+    return true;
+  });
+
   const [isDemo, setIsDemo] = useState(false);
-  const [reviews, setReviews] = useState<ReviewWithProduct[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Mock data for demo bypass
@@ -83,9 +99,28 @@ export default function AdminReviewsPage() {
     return () => clearTimeout(safetyTimeout);
   }, []);
 
+  const loadLocalReviews = () => {
+    try {
+      const stored = localStorage.getItem('vip_vaper_all_reviews');
+      if (stored) {
+        setReviews(JSON.parse(stored));
+        localStorage.setItem('cached_admin_reviews', stored);
+      } else {
+        setReviews(mockReviews);
+        localStorage.setItem('vip_vaper_all_reviews', JSON.stringify(mockReviews));
+        localStorage.setItem('cached_admin_reviews', JSON.stringify(mockReviews));
+      }
+    } catch (e) {
+      console.error(e);
+      setReviews(mockReviews);
+    }
+  };
+
   const fetchReviews = async () => {
     try {
-      setLoading(true);
+      if (reviews.length === 0) {
+        setLoading(true);
+      }
       // Fetch reviews with joined product name
       const { data, error } = await supabase
         .from('product_reviews')
@@ -102,11 +137,16 @@ export default function AdminReviewsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      if (data) {
+      if (data && data.length > 0) {
         setReviews(data as any);
+        localStorage.setItem('cached_admin_reviews', JSON.stringify(data));
+      } else {
+        loadLocalReviews();
       }
     } catch (err) {
-      console.error('Erro ao buscar avaliações:', err);
+      console.error('Erro ao buscar avaliações, carregando local:', err);
+      setIsDemo(true);
+      loadLocalReviews();
     } finally {
       setLoading(false);
     }
@@ -116,9 +156,11 @@ export default function AdminReviewsPage() {
     setActionLoading(id);
     if (isDemo) {
       setTimeout(() => {
-        setReviews(prev =>
-          prev.map(rev => rev.id === id ? { ...rev, approved: true } : rev)
-        );
+        setReviews(prev => {
+          const next = prev.map(rev => rev.id === id ? { ...rev, approved: true } : rev);
+          localStorage.setItem('cached_admin_reviews', JSON.stringify(next));
+          return next;
+        });
         setActionLoading(null);
       }, 500);
       return;
@@ -132,9 +174,11 @@ export default function AdminReviewsPage() {
 
       if (error) throw error;
       
-      setReviews(prev =>
-        prev.map(rev => rev.id === id ? { ...rev, approved: true } : rev)
-      );
+      setReviews(prev => {
+        const next = prev.map(rev => rev.id === id ? { ...rev, approved: true } : rev);
+        localStorage.setItem('cached_admin_reviews', JSON.stringify(next));
+        return next;
+      });
     } catch (err) {
       console.error('Erro ao aprovar avaliação:', err);
     } finally {
@@ -147,7 +191,11 @@ export default function AdminReviewsPage() {
     setActionLoading(id);
     if (isDemo) {
       setTimeout(() => {
-        setReviews(prev => prev.filter(rev => rev.id !== id));
+        setReviews(prev => {
+          const next = prev.filter(rev => rev.id !== id);
+          localStorage.setItem('cached_admin_reviews', JSON.stringify(next));
+          return next;
+        });
         setActionLoading(null);
       }, 500);
       return;
@@ -161,7 +209,11 @@ export default function AdminReviewsPage() {
 
       if (error) throw error;
       
-      setReviews(prev => prev.filter(rev => rev.id !== id));
+      setReviews(prev => {
+        const next = prev.filter(rev => rev.id !== id);
+        localStorage.setItem('cached_admin_reviews', JSON.stringify(next));
+        return next;
+      });
     } catch (err) {
       console.error('Erro ao excluir avaliação:', err);
     } finally {

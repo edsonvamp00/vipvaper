@@ -20,23 +20,53 @@ interface MockAdminOrder {
 export default function AdminDashboardPage() {
   const { signOut } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  
+  // Initialize loading to false if we have cached stats so UI shell renders immediately
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_stats');
+      return cached ? false : true;
+    }
+    return true;
+  });
 
-  // Stats state initialized with fallback demo data
-  const [stats, setStats] = useState({
-    revenue: 3459.60,
-    ordersCount: 18,
-    avgTicket: 192.20,
-    productsCount: 4
+  // Stats state initialized with fallback cache or demo data
+  const [stats, setStats] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_stats');
+      return cached ? JSON.parse(cached) : {
+        revenue: 3459.60,
+        ordersCount: 18,
+        avgTicket: 192.20,
+        productsCount: 4
+      };
+    }
+    return {
+      revenue: 3459.60,
+      ordersCount: 18,
+      avgTicket: 192.20,
+      productsCount: 4
+    };
   });
 
   // Recent orders list state
-  const [orders, setOrders] = useState<any[]>([
-    { id: 'PED-7F9A', contact_name: 'Carlos Henrique', total: 189.80, status: 'pending', created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), payment_method: 'pix' },
-    { id: 'PED-4B2C', contact_name: 'Mariana Costa', total: 119.90, status: 'preparing', created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), payment_method: 'card_on_delivery' },
-    { id: 'PED-9E3F', contact_name: 'Rodrigo Abreu', total: 429.70, status: 'shipped', created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), payment_method: 'pix' },
-    { id: 'PED-1D5E', contact_name: 'Juliana Paes', total: 69.90, status: 'completed', created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), payment_method: 'cash' },
-  ]);
+  const [orders, setOrders] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_orders');
+      return cached ? JSON.parse(cached) : [
+        { id: 'PED-7F9A', contact_name: 'Carlos Henrique', total: 189.80, status: 'pending', created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), payment_method: 'pix' },
+        { id: 'PED-4B2C', contact_name: 'Mariana Costa', total: 119.90, status: 'preparing', created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), payment_method: 'card_on_delivery' },
+        { id: 'PED-9E3F', contact_name: 'Rodrigo Abreu', total: 429.70, status: 'shipped', created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), payment_method: 'pix' },
+        { id: 'PED-1D5E', contact_name: 'Juliana Paes', total: 69.90, status: 'completed', created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), payment_method: 'cash' },
+      ];
+    }
+    return [
+      { id: 'PED-7F9A', contact_name: 'Carlos Henrique', total: 189.80, status: 'pending', created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), payment_method: 'pix' },
+      { id: 'PED-4B2C', contact_name: 'Mariana Costa', total: 119.90, status: 'preparing', created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), payment_method: 'card_on_delivery' },
+      { id: 'PED-9E3F', contact_name: 'Rodrigo Abreu', total: 429.70, status: 'shipped', created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), payment_method: 'pix' },
+      { id: 'PED-1D5E', contact_name: 'Juliana Paes', total: 69.90, status: 'completed', created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), payment_method: 'cash' },
+    ];
+  });
 
   useEffect(() => {
     // Safety timeout — if anything hangs, just show the dashboard after 3s
@@ -45,7 +75,8 @@ export default function AdminDashboardPage() {
     supabase.auth.getSession().then(({ data }) => {
       clearTimeout(safetyTimeout);
       if (data.session?.user) {
-        setLoading(false);
+        // Always trigger data reload in the background
+        loadDashboardData();
       } else {
         window.location.href = '/admin/login';
       }
@@ -57,69 +88,76 @@ export default function AdminDashboardPage() {
     return () => clearTimeout(safetyTimeout);
   }, []);
 
-  // Load real Supabase data
-  useEffect(() => {
-    if (loading) return;
+  async function loadDashboardData() {
+    try {
+      // 1. Get products count
+      const { count: prodsCount } = await supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('active', true);
+      
+      // 2. Get all orders to calculate metrics
+      const { data: allOrders } = await supabase
+        .from('orders')
+        .select('total, status');
+      
+      // 3. Get recent 5 orders list
+      const { data: recentOrders } = await supabase
+        .from('orders')
+        .select('id, contact_name, total, status, created_at, payment_method')
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-    async function loadDashboardData() {
-      try {
-        // 1. Get products count
-        const { count: prodsCount } = await supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('active', true);
-        
-        // 2. Get all orders to calculate metrics
-        const { data: allOrders } = await supabase
-          .from('orders')
-          .select('total, status');
-        
-        // 3. Get recent 5 orders list
-        const { data: recentOrders } = await supabase
-          .from('orders')
-          .select('id, contact_name, total, status, created_at, payment_method')
-          .order('created_at', { ascending: false })
-          .limit(5);
+      let totalRevenue = 0;
+      let validOrdersCount = 0;
 
-        let totalRevenue = 0;
-        let validOrdersCount = 0;
-
-        if (allOrders) {
-          allOrders.forEach(o => {
-            if (o.status !== 'cancelled') {
-              totalRevenue += Number(o.total);
-              validOrdersCount++;
-            }
-          });
-        }
-
-        const avg = validOrdersCount > 0 ? totalRevenue / validOrdersCount : 0;
-
-        setStats({
-          revenue: totalRevenue,
-          ordersCount: allOrders ? allOrders.length : 0,
-          avgTicket: avg,
-          productsCount: prodsCount || 0
+      if (allOrders) {
+        allOrders.forEach(o => {
+          if (o.status !== 'cancelled') {
+            totalRevenue += Number(o.total);
+            validOrdersCount++;
+          }
         });
-
-        if (recentOrders && recentOrders.length > 0) {
-          setOrders(recentOrders);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar dados do dashboard do Supabase:', err);
       }
-    }
 
-    loadDashboardData();
-  }, [loading]);
+      const avg = validOrdersCount > 0 ? totalRevenue / validOrdersCount : 0;
+
+      const freshStats = {
+        revenue: totalRevenue,
+        ordersCount: allOrders ? allOrders.length : 0,
+        avgTicket: avg,
+        productsCount: prodsCount || 0
+      };
+
+      setStats(freshStats);
+      localStorage.setItem('cached_admin_stats', JSON.stringify(freshStats));
+
+      if (recentOrders && recentOrders.length > 0) {
+        setOrders(recentOrders);
+        localStorage.setItem('cached_admin_orders', JSON.stringify(recentOrders));
+      }
+    } catch (err) {
+      console.error('Erro ao buscar dados do dashboard do Supabase:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
-      await signOut();
+      // Clear localStorage demo and verification flags instantly
+      localStorage.removeItem('vip_vaper_demo_admin');
+      localStorage.removeItem('vip_admin_verified');
+      localStorage.removeItem('cached_admin_stats');
+      localStorage.removeItem('cached_admin_orders');
+      
+      // Trigger sign out asynchronously without waiting
+      supabase.auth.signOut().catch(() => {});
+      signOut().catch(() => {});
     } catch (err) {
       console.error('Erro ao deslogar:', err);
     }
+    // Redirect instantly!
     window.location.href = '/admin/login';
   };
 

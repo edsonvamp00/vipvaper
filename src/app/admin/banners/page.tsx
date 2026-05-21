@@ -12,9 +12,25 @@ import { Banner } from '@/types';
 export default function AdminBannersPage() {
   const { isAdmin } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  
+  // SWR Caching: load banners instantly if cached
+  const [banners, setBanners] = useState<Banner[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_banners');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+  
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_banners');
+      return cached ? false : true;
+    }
+    return true;
+  });
+
   const [isDemo, setIsDemo] = useState(false);
-  const [banners, setBanners] = useState<Banner[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -39,7 +55,7 @@ export default function AdminBannersPage() {
     {
       id: 'fb1',
       title: 'NOVA GERAÇÃO ELFBAR',
-      subtitle: 'Nuvens de sabor intenso e displays digitais de e-líquido.',
+      subtitle: 'Nuvens de sabor intenso and displays digitais de e-líquido.',
       image_url: 'https://images.unsplash.com/photo-1559583985-c80d8ad9b29f?w=1200&auto=format&fit=crop&q=80',
       link_url: '/categoria/pods',
       active: true,
@@ -57,6 +73,13 @@ export default function AdminBannersPage() {
       created_at: ''
     }
   ];
+
+  // Auto-persist banners list mutations back to SWR localStorage cache
+  useEffect(() => {
+    if (banners && banners.length > 0) {
+      localStorage.setItem('cached_admin_banners', JSON.stringify(banners));
+    }
+  }, [banners]);
 
   useEffect(() => {
     // Safety timeout — if anything hangs, just show the banners after 3s
@@ -77,20 +100,44 @@ export default function AdminBannersPage() {
     return () => clearTimeout(safetyTimeout);
   }, []);
 
+  const loadLocalBanners = () => {
+    try {
+      const stored = localStorage.getItem('vip_vaper_all_banners');
+      if (stored) {
+        setBanners(JSON.parse(stored));
+        localStorage.setItem('cached_admin_banners', stored);
+      } else {
+        setBanners(mockBanners);
+        localStorage.setItem('vip_vaper_all_banners', JSON.stringify(mockBanners));
+        localStorage.setItem('cached_admin_banners', JSON.stringify(mockBanners));
+      }
+    } catch (e) {
+      console.error(e);
+      setBanners(mockBanners);
+    }
+  };
+
   const fetchBanners = async () => {
     try {
-      setLoading(true);
+      if (banners.length === 0) {
+        setLoading(true);
+      }
       const { data, error } = await supabase
         .from('banners')
         .select('*')
         .order('position', { ascending: true });
 
       if (error) throw error;
-      if (data) {
+      if (data && data.length > 0) {
         setBanners(data);
+        localStorage.setItem('cached_admin_banners', JSON.stringify(data));
+      } else {
+        loadLocalBanners();
       }
     } catch (err) {
-      console.error('Erro ao carregar banners:', err);
+      console.error('Erro ao carregar banners, carregando local:', err);
+      setIsDemo(true);
+      loadLocalBanners();
     } finally {
       setLoading(false);
     }

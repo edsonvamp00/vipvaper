@@ -20,16 +20,40 @@ interface StoreSettings {
 export default function AdminSettingsPage() {
   const { isAdmin } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
-  const [settings, setSettings] = useState<StoreSettings>({
+
+  const defaultSettings: StoreSettings = {
     storeName: 'VIPVIPER',
     pixKey: '00000000000000000000000000000000',
     pixReceiver: 'VipViper Inc.',
     whatsappNumber: '5511999999999',
     whatsappMessage: 'Olá! Vim do site VipViper e gostaria de finalizar meu pedido.',
     deliveryFee: 20.00
+  };
+
+  const [settings, setSettings] = useState<StoreSettings>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_settings');
+      return cached ? JSON.parse(cached) : defaultSettings;
+    }
+    return defaultSettings;
   });
+
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_settings');
+      return cached ? false : true;
+    }
+    return true;
+  });
+
+  const [isDemo, setIsDemo] = useState(false);
+
+  // Synchronize configurations state to SWR localStorage cache automatically
+  useEffect(() => {
+    if (settings) {
+      localStorage.setItem('cached_admin_settings', JSON.stringify(settings));
+    }
+  }, [settings]);
 
   useEffect(() => {
     // Safety timeout — if anything hangs, just show the settings after 3s
@@ -55,8 +79,10 @@ export default function AdminSettingsPage() {
       const stored = localStorage.getItem('vip_vaper_store_settings');
       if (stored) {
         setSettings(JSON.parse(stored));
+        localStorage.setItem('cached_admin_settings', stored);
       } else {
         localStorage.setItem('vip_vaper_store_settings', JSON.stringify(settings));
+        localStorage.setItem('cached_admin_settings', JSON.stringify(settings));
       }
     } catch (e) {
       console.error(e);
@@ -65,7 +91,10 @@ export default function AdminSettingsPage() {
 
   const loadSupabaseSettings = async () => {
     try {
-      setLoading(true);
+      const cached = localStorage.getItem('cached_admin_settings');
+      if (!cached) {
+        setLoading(true);
+      }
       
       const { data, error } = await supabase
         .from('store_settings')
@@ -75,7 +104,7 @@ export default function AdminSettingsPage() {
       
       if (data && data.length > 0) {
         // Parse keys
-        const mappedSettings = { ...settings };
+        const mappedSettings = { ...defaultSettings };
         data.forEach(item => {
           if (item.key in mappedSettings) {
             // @ts-ignore
@@ -83,6 +112,7 @@ export default function AdminSettingsPage() {
           }
         });
         setSettings(mappedSettings);
+        localStorage.setItem('cached_admin_settings', JSON.stringify(mappedSettings));
       } else {
         loadLocalSettings();
       }
@@ -100,6 +130,7 @@ export default function AdminSettingsPage() {
 
     if (isDemo) {
       localStorage.setItem('vip_vaper_store_settings', JSON.stringify(settings));
+      localStorage.setItem('cached_admin_settings', JSON.stringify(settings));
       alert('Configurações salvas localmente (Modo Demo)');
       return;
     }
@@ -125,10 +156,12 @@ export default function AdminSettingsPage() {
         throw new Error('Alguns registros não puderam ser salvos.');
       }
 
+      localStorage.setItem('cached_admin_settings', JSON.stringify(settings));
       alert('Configurações da loja salvas com sucesso no Supabase!');
     } catch (err: any) {
       alert('Erro ao salvar no Supabase, salvando localmente: ' + err.message);
       localStorage.setItem('vip_vaper_store_settings', JSON.stringify(settings));
+      localStorage.setItem('cached_admin_settings', JSON.stringify(settings));
     } finally {
       setLoading(false);
     }

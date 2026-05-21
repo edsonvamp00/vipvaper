@@ -108,11 +108,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
+    
+    // 1. Instantly wipe all auth and cache keys from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-') || key.startsWith('cached_') || key.includes('admin') || key.includes('vip_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {
+        console.warn('Error clearing localStorage on sign out:', e);
+      }
+    }
+
+    // 2. Instantly clear local states so the UI updates instantly
     setUser(null);
     setProfile(null);
     setIsAdmin(false);
     setLoading(false);
+
+    // 3. Fire the server sign-out in the background without blocking the UI
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise(resolve => setTimeout(resolve, 800)) // 800ms max timeout for server notification
+      ]);
+    } catch (err) {
+      console.warn('Silent sign-out network request warning:', err);
+    }
   };
 
   return (

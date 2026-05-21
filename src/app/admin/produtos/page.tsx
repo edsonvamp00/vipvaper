@@ -13,10 +13,28 @@ import { ArrowLeft, Plus, Search, Trash2, Edit, Save, X, PlusCircle, Check } fro
 export default function AdminProductsPage() {
   const { isAdmin } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_products');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+  const [categories, setCategories] = useState<Category[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_categories');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_products');
+      return cached ? false : true;
+    }
+    return true;
+  });
   const [isDemo, setIsDemo] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +65,9 @@ export default function AdminProductsPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (products.length === 0) {
+        setLoading(true);
+      }
       
       // Parallel fetch: categories + products at the same time
       const [catResult, prodResult] = await Promise.all([
@@ -62,13 +82,21 @@ export default function AdminProductsPage() {
       if (catResult.error) throw catResult.error;
       if (prodResult.error) throw prodResult.error;
 
-      setCategories(catResult.data || MOCK_CATEGORIES);
-      setProducts(prodResult.data || MOCK_PRODUCTS);
+      const freshCats = catResult.data || MOCK_CATEGORIES;
+      const freshProds = prodResult.data || MOCK_PRODUCTS;
+
+      setCategories(freshCats);
+      setProducts(freshProds);
+
+      localStorage.setItem('cached_admin_categories', JSON.stringify(freshCats));
+      localStorage.setItem('cached_admin_products', JSON.stringify(freshProds));
     } catch (err) {
       console.error('Erro ao carregar dados do Supabase, utilizando dados locais (Demo):', err);
       setIsDemo(true);
-      setProducts(MOCK_PRODUCTS);
-      setCategories(MOCK_CATEGORIES);
+      if (products.length === 0) {
+        setProducts(MOCK_PRODUCTS);
+        setCategories(MOCK_CATEGORIES);
+      }
     } finally {
       setLoading(false);
     }

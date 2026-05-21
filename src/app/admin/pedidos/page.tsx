@@ -26,9 +26,21 @@ interface AdminOrder {
 export default function AdminOrdersPage() {
   const { isAdmin } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<AdminOrder[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_all_orders');
+      return cached ? JSON.parse(cached) : [];
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_admin_all_orders');
+      return cached ? false : true;
+    }
+    return true;
+  });
   const [isDemo, setIsDemo] = useState(false);
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
 
   // Fallback local mock orders for quick testing
@@ -125,9 +137,11 @@ export default function AdminOrdersPage() {
       const stored = localStorage.getItem('vip_vaper_all_orders');
       if (stored) {
         setOrders(JSON.parse(stored));
+        localStorage.setItem('cached_admin_all_orders', stored);
       } else {
         setOrders(MOCK_ADMIN_ORDERS);
         localStorage.setItem('vip_vaper_all_orders', JSON.stringify(MOCK_ADMIN_ORDERS));
+        localStorage.setItem('cached_admin_all_orders', JSON.stringify(MOCK_ADMIN_ORDERS));
       }
     } catch (e) {
       console.error(e);
@@ -137,7 +151,9 @@ export default function AdminOrdersPage() {
 
   const loadSupabaseOrders = async () => {
     try {
-      setLoading(true);
+      if (orders.length === 0) {
+        setLoading(true);
+      }
       
       const { data, error } = await supabase
         .from('orders')
@@ -156,6 +172,7 @@ export default function AdminOrdersPage() {
       
       if (data && data.length > 0) {
         setOrders(data);
+        localStorage.setItem('cached_admin_all_orders', JSON.stringify(data));
       } else {
         loadLocalOrders();
       }
