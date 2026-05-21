@@ -29,7 +29,7 @@ interface OrderWithItems {
 }
 
 export default function ClientProfilePage() {
-  const { user, profile, refreshProfile, signOut, loading: authLoading } = useAuth();
+  const { user, profile, isAdmin, refreshProfile, signOut, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // Navigation and UI States
@@ -312,7 +312,7 @@ export default function ClientProfilePage() {
           </div>
 
           {/* Quick link to admin dashboard if admin */}
-          {profile && (
+          {isAdmin && (
             <Link
               href="/admin/dashboard"
               className="w-full mt-4 py-3 px-4 rounded-xl border border-[#00ff66]/10 bg-[#00ff66]/5 hover:bg-[#00ff66]/10 text-[#00ff66] font-cyber-orbitron font-black text-[9px] tracking-widest uppercase flex items-center justify-center gap-1.5 transition-all duration-300"

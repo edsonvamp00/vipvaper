@@ -35,6 +35,26 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [storePhone, setStorePhone] = useState('5511999998888');
+
+  // Fetch store WhatsApp phone from Supabase settings
+  useEffect(() => {
+    async function fetchStorePhone() {
+      try {
+        const { data, error } = await supabase
+          .from('store_settings')
+          .select('value')
+          .eq('key', 'phone')
+          .single();
+        if (!error && data?.value) {
+          setStorePhone(data.value.replace(/\D/g, ''));
+        }
+      } catch (err) {
+        console.error('Erro ao buscar telefone da loja:', err);
+      }
+    }
+    fetchStorePhone();
+  }, []);
 
   // Prefill name and phone if user profile exists
   useEffect(() => {
@@ -79,7 +99,15 @@ export default function CheckoutPage() {
         neighborhood,
         city,
         state
-      } : null,
+      } : {
+        cep: '',
+        street: 'Retirada em Loja',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: 'São Paulo',
+        state: 'SP'
+      },
       payment_method: paymentMethod,
       contact_name: name,
       contact_phone: phone,
@@ -119,7 +147,7 @@ export default function CheckoutPage() {
       }
 
       // 2. Generate detailed WhatsApp message summary for manual fulfillment (Extremely high conversion!)
-      const whatsappPhone = '5511999999999'; // Admin custom whatsapp phone placeholder
+      const whatsappPhone = storePhone; // Dynamic from store_settings
       const itemsList = cart
         .map(
           (item) =>
